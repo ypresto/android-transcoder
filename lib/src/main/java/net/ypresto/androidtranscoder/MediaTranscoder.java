@@ -4,16 +4,23 @@ import android.os.Handler;
 import android.util.Log;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
+import net.ypresto.androidtranscoder.format.MediaFormatPresets;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
     private static volatile MediaTranscoder sMediaTranscoder;
-    private ExecutorService mExecutor = Executors.newFixedThreadPool(1); // TODO
+    private ExecutorService mExecutor = Executors.newFixedThreadPool(1, new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new Thread(r, "MediaTranscoder-Worker");
+        }
+    }); // TODO
 
     public interface Listener {
         void onTranscodeCompleted();
@@ -50,7 +57,7 @@ public class MediaTranscoder {
                 try {
                     MediaTranscoderEngine engine = new MediaTranscoderEngine();
                     engine.setDataSource(inFileDescriptor);
-                    engine.transcode(outPath);
+                    engine.transcode(outPath, MediaFormatPresets.getExportPreset960x540());
                 } catch (IOException e) {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);

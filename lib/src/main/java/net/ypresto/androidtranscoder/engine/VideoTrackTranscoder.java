@@ -99,34 +99,25 @@ public class VideoTrackTranscoder implements TrackTranscoder {
                 throw new IllegalStateException("Actual output format could not be determined for track: " + mTrackIndex);
             }
         } finally {
-            // resetCodecs();
-            // mExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC); // reset position
-            // mExtractor.unselectTrack(mTrackIndex);
+            resetCodecs();
+            mExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC); // reset position
+            mExtractor.unselectTrack(mTrackIndex);
         }
     }
 
-    // FIXME: busy implementation IS WRONG!
     @Override
     public boolean stepPipeline() {
         boolean busy = false;
 
-        /*
-        if (!mWritingToMuxerStarted) {
-            int extractorResult;
-            // NOTE: keep from crash after flushing.
-            while ((extractorResult = drainExtractor(0)) == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY) { busy = true; }
-            if (extractorResult != DRAIN_STATE_CONSUMED) {
-                // not ready yet.
-                return busy;
-            }
-            mWritingToMuxerStarted = true;
-        }
-        */
-
+        int status;
         while (drainEncoder(0, true) != DRAIN_STATE_NONE) { busy = true; }
-        // NOTE: not repeating to keep from deadlock when encoder is full.
-        while (drainDecoder(0) == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY) { busy = true; }
-        while (drainExtractor(0) == DRAIN_STATE_CONSUMED) { busy = true; }
+        do {
+            status = drainDecoder(0);
+            if (status != DRAIN_STATE_NONE) busy = true;
+            // NOTE: not repeating to keep from deadlock when encoder is full.
+        } while (status == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY);
+        while (drainExtractor(0) != DRAIN_STATE_NONE) { busy = true; }
+
         return busy;
     }
 
@@ -138,6 +129,14 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     // TODO: CloseGuard
     @Override
     public void release() {
+        if (mDecoderOutputSurfaceWrapper != null) {
+            mDecoderOutputSurfaceWrapper.release();
+            mDecoderOutputSurfaceWrapper = null;
+        }
+        if (mEncoderInputSurfaceWrapper != null) {
+            mEncoderInputSurfaceWrapper.release();
+            mEncoderInputSurfaceWrapper = null;
+        }
         if (mDecoder != null) {
             if (mDecoderStarted) mDecoder.stop();
             mDecoder.release();
@@ -147,14 +146,6 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             if (mEncoderStarted) mEncoder.stop();
             mEncoder.release();
             mEncoder = null;
-        }
-        if (mDecoderOutputSurfaceWrapper != null) {
-            mDecoderOutputSurfaceWrapper.release();
-            mDecoderOutputSurfaceWrapper = null;
-        }
-        if (mEncoderInputSurfaceWrapper != null) {
-            mEncoderInputSurfaceWrapper.release();
-            mEncoderInputSurfaceWrapper = null;
         }
     }
 
@@ -197,6 +188,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
             mEncoder.signalEndOfInputStream();
             mIsDecoderEOS = true;
+            mBufferInfo.size = 0;
         }
         boolean doRender = (mBufferInfo.size > 0);
         // NOTE: doRender will block if buffer (of encoder) is full.

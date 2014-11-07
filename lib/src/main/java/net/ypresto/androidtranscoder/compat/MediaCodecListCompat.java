@@ -36,13 +36,8 @@ public class MediaCodecListCompat {
         while (iterator.hasNext()) {
             MediaCodecInfo codecInfo = iterator.next();
             if (codecInfo.isEncoder() != findEncoder) continue;
-            if (!Arrays.asList(codecInfo.getSupportedTypes()).contains(mimeType)) continue;
-            MediaCodecInfo.CodecCapabilities capabilities = codecInfo.getCapabilitiesForType(mimeType);
-            for (MediaCodecInfo.CodecProfileLevel profileLevel : capabilities.profileLevels) {
-                if (profileLevel.profile == format.getInteger(MediaCoderExtraConstants.KEY_PROFILE)
-                    && profileLevel.level < format.getInteger(MediaCoderExtraConstants.KEY_LEVEL)) {
-                    return codecInfo.getName();
-                }
+            if (Arrays.asList(codecInfo.getSupportedTypes()).contains(mimeType)) {
+                return codecInfo.getName();
             }
         }
         return null;
