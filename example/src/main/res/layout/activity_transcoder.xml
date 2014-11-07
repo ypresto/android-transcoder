@@ -22,4 +22,12 @@
         android:layout_gravity="center_horizontal"
         android:text="Select Video File" />
 
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:progress="0" />
+
 </LinearLayout>

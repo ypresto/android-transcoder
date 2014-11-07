@@ -34,6 +34,13 @@ public interface TrackTranscoder {
      */
     boolean stepPipeline();
 
+    /**
+     * Get presentation time of last sample written to muxer.
+     *
+     * @return Presentation time in micro-second. Return value is undefined if finished writing.
+     */
+    long getWrittenPresentationTimeUs();
+
     boolean isFinished();
 
     void release();

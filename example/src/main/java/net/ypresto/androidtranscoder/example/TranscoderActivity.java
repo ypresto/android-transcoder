@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
@@ -57,9 +58,24 @@ public class TranscoderActivity extends Activity {
                         return;
                     }
                     final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                    final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
+                    progressBar.setMax(1000);
                     MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(), new MediaTranscoder.Listener() {
                         @Override
+                        public void onTranscodeProgress(double progress) {
+                            if (progress < 0) {
+                                progressBar.setIndeterminate(true);
+                            } else {
+                                progressBar.setIndeterminate(false);
+                                progressBar.setProgress((int) Math.round(progress * 1000));
+                            }
+                        }
+
+                        @Override
                         public void onTranscodeCompleted() {
+                            findViewById(R.id.select_video_button).setEnabled(true);
+                            progressBar.setIndeterminate(false);
+                            progressBar.setProgress(1000);
                             startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
                             try {
                                 parcelFileDescriptor.close();
@@ -70,6 +86,9 @@ public class TranscoderActivity extends Activity {
 
                         @Override
                         public void onTranscodeFailed(Exception exception) {
+                            progressBar.setIndeterminate(false);
+                            progressBar.setProgress(0);
+                            findViewById(R.id.select_video_button).setEnabled(true);
                             Toast.makeText(TranscoderActivity.this, "Transcoder error occurred.", Toast.LENGTH_LONG).show();
                             try {
                                 parcelFileDescriptor.close();
@@ -78,6 +97,7 @@ public class TranscoderActivity extends Activity {
                             }
                         }
                     });
+                    findViewById(R.id.select_video_button).setEnabled(false);
                 }
                 break;
             }

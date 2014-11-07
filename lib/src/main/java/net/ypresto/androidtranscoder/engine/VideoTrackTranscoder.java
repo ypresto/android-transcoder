@@ -34,6 +34,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mIsEncoderEOS;
     private boolean mDecoderStarted;
     private boolean mEncoderStarted;
+    private long mWrittenPresentationTimeUs;
 
     public VideoTrackTranscoder(MediaExtractor extractor,
                                 int trackIndex,
@@ -119,6 +120,11 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         while (drainExtractor(0) != DRAIN_STATE_NONE) { busy = true; }
 
         return busy;
+    }
+
+    @Override
+    public long getWrittenPresentationTimeUs() {
+        return mWrittenPresentationTimeUs;
     }
 
     @Override
@@ -225,6 +231,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         }
         if (writeToMuxer) {
             mMuxer.writeSampleData(mMuxerTrackIndex, mEncoderOutputBuffers[result], mBufferInfo);
+            mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         }
         mEncoder.releaseOutputBuffer(result, false);
         return DRAIN_STATE_CONSUMED;

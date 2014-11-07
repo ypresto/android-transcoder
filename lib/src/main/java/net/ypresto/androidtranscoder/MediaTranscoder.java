@@ -22,10 +22,7 @@ public class MediaTranscoder {
         }
     }); // TODO
 
-    public interface Listener {
-        void onTranscodeCompleted();
-
-        void onTranscodeFailed(Exception exception);
+    private MediaTranscoder() {
     }
 
     public static MediaTranscoder getInstance() {
@@ -39,14 +36,12 @@ public class MediaTranscoder {
         return sMediaTranscoder;
     }
 
-    private MediaTranscoder() {
-    }
-
     /**
      * Transcodes video file asynchronously.
+     *
      * @param inFileDescriptor FileDescriptor for input.
-     * @param outPath File path for output.
-     * @param listener listener instance for callback.
+     * @param outPath          File path for output.
+     * @param listener         Listener instance for callback.
      */
     public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
         final Handler handler = new Handler();
@@ -56,6 +51,17 @@ public class MediaTranscoder {
                 Exception caughtException = null;
                 try {
                     MediaTranscoderEngine engine = new MediaTranscoderEngine();
+                    engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
+                        @Override
+                        public void onProgress(final double progress) {
+                            handler.post(new Runnable() { // TODO: reuse instance
+                                @Override
+                                public void run() {
+                                    listener.onTranscodeProgress(progress);
+                                }
+                            });
+                        }
+                    });
                     engine.setDataSource(inFileDescriptor);
                     engine.transcodeVideo(outPath, MediaFormatPresets.getExportPreset960x540());
                 } catch (IOException e) {
@@ -63,7 +69,7 @@ public class MediaTranscoder {
                             + " or could not open output file ('" + outPath + "') .", e);
                     caughtException = e;
                 } catch (RuntimeException e) {
-                    Log.e(TAG, "Fatal error while transcoding, this might be bug in engine or Android.", e);
+                    Log.e(TAG, "Fatal error while transcoding, this might be invalid output format or bug in engine or Android.", e);
                     caughtException = e;
                 }
 
@@ -80,5 +86,27 @@ public class MediaTranscoder {
                 });
             }
         });
+    }
+
+    public interface Listener {
+        /**
+         * Called to notify progress.
+         *
+         * @param progress Progress in [0.0, 1.0] range, or negative value if progress is unknown.
+         */
+        void onTranscodeProgress(double progress);
+
+        /**
+         * Called when transcode completed.
+         */
+        void onTranscodeCompleted();
+
+        /**
+         * Called when transcode failed.
+         *
+         * @param exception Exception caused failure. Note that it IS NOT {@link java.lang.Throwable}.
+         *                  This means {@link java.lang.Error} won't be caught.
+         */
+        void onTranscodeFailed(Exception exception);
     }
 }
