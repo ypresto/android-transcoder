@@ -8,21 +8,27 @@ import net.ypresto.androidtranscoder.format.MediaFormatPresets;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
+    private static final int MAXIMUM_THREAD = 1; // TODO
     private static volatile MediaTranscoder sMediaTranscoder;
-    private ExecutorService mExecutor = Executors.newFixedThreadPool(1, new ThreadFactory() {
-        @Override
-        public Thread newThread(Runnable r) {
-            return new Thread(r, "MediaTranscoder-Worker");
-        }
-    }); // TODO
+    private ThreadPoolExecutor mExecutor;
 
     private MediaTranscoder() {
+        mExecutor = new ThreadPoolExecutor(
+                0, MAXIMUM_THREAD, 60, TimeUnit.SECONDS,
+                new LinkedBlockingQueue<Runnable>(),
+                new ThreadFactory() {
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        return new Thread(r, "MediaTranscoder-Worker");
+                    }
+                });
     }
 
     public static MediaTranscoder getInstance() {
