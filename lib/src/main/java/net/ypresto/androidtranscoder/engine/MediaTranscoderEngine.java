@@ -33,10 +33,14 @@ public class MediaTranscoderEngine {
     }
 
     /**
-     * Run transcoding. Blocks current thread.
-     * @throws IOException when extractor or muxer cannot open file.
+     * Run video transcoding. Blocks current thread.
+     * Audio data will not be transcoded; original stream will be wrote to output file.
+     *
+     * @param outputPath File path to output transcoded video file.
+     * @param videoFormat Output video format.
+     * @throws IOException when input or output file could not be opened.
      */
-    public void transcode(String outputPath, MediaFormat outputFormat) throws IOException {
+    public void transcodeVideo(String outputPath, MediaFormat videoFormat) throws IOException {
         if (outputPath == null) {
             throw new NullPointerException("Output path cannot be null.");
         }
@@ -47,7 +51,7 @@ public class MediaTranscoderEngine {
             mExtractor = new MediaExtractor();
             mExtractor.setDataSource(mInputFileDescriptor);
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
-            setupTrackTranscoders(outputFormat);
+            setupTrackTranscoders(videoFormat);
             mMuxer.start();
             runPipelines();
             mMuxer.stop();

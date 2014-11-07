@@ -57,7 +57,7 @@ public class MediaTranscoder {
                 try {
                     MediaTranscoderEngine engine = new MediaTranscoderEngine();
                     engine.setDataSource(inFileDescriptor);
-                    engine.transcode(outPath, MediaFormatPresets.getExportPreset960x540());
+                    engine.transcodeVideo(outPath, MediaFormatPresets.getExportPreset960x540());
                 } catch (IOException e) {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);
