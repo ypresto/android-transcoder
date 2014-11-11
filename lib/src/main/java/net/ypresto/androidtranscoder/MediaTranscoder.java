@@ -16,6 +16,7 @@
 package net.ypresto.androidtranscoder;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
@@ -65,7 +66,9 @@ public class MediaTranscoder {
      * @param listener         Listener instance for callback.
      */
     public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
-        final Handler handler = new Handler();
+        Looper looper = Looper.myLooper();
+        if (looper == null) looper = Looper.getMainLooper();
+        final Handler handler = new Handler(looper);
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {

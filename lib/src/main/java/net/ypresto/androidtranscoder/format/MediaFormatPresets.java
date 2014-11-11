@@ -32,7 +32,7 @@ public class MediaFormatPresets {
         format.setInteger(MediaFormat.KEY_BIT_RATE, 5400 * 1000);
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
         format.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 10);
+        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
         return format;
     }
 }
