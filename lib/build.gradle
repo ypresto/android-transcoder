@@ -1,4 +1,14 @@
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.novoda:android-bintray-release:0.2.3'
+    }
+}
+
 apply plugin: 'com.android.library'
+apply plugin: 'android-bintray-release'
 
 android {
     compileSdkVersion 19
@@ -17,6 +27,15 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+publish {
+    groupId = 'net.ypresto.androidtranscoder'
+    artifactId = 'android-transcoder'
+    version = '0.1.3'
+    licences = ['Apache-2.0']
+    website = 'https://github.com/ypresto/android-transcoder'
+    autoPublish = false
 }
 
 dependencies {
