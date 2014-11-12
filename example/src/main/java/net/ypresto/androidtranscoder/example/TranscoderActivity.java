@@ -14,6 +14,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
+import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -60,7 +61,7 @@ public class TranscoderActivity extends Activity {
                     final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
                     final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
                     progressBar.setMax(1000);
-                    MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(), new MediaTranscoder.Listener() {
+                    MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
                         @Override
                         public void onTranscodeProgress(double progress) {
                             if (progress < 0) {
@@ -96,7 +97,9 @@ public class TranscoderActivity extends Activity {
                                 Log.w("Error while closing", e);
                             }
                         }
-                    });
+                    };
+                    MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
+                            MediaFormatStrategyPresets.EXPORT_PRESET_960x540, listener);
                     findViewById(R.id.select_video_button).setEnabled(false);
                 }
                 break;

@@ -21,14 +21,19 @@ import android.media.MediaMetadataRetriever;
 import android.media.MediaMuxer;
 import android.util.Log;
 
+import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import net.ypresto.androidtranscoder.utils.MediaExtractorUtils;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
 
+/**
+ * Internal engine, do not use this directly.
+ */
 // TODO: treat encrypted data
 public class MediaTranscoderEngine {
     private static final String TAG = "MediaTranscoderEngine";
+    private static final double PROGRESS_UNKNOWN = -1.0;
     private static final long SLEEP_TO_WAIT_TRACK_TRANSCODERS = 10;
     private static final long PROGRESS_INTERVAL_STEPS = 10;
     private FileDescriptor mInputFileDescriptor;
@@ -36,9 +41,13 @@ public class MediaTranscoderEngine {
     private TrackTranscoder mAudioTrackTranscoder;
     private MediaExtractor mExtractor;
     private MediaMuxer mMuxer;
+    private volatile double mProgress;
     private ProgressCallback mProgressCallback;
     private long mDurationUs;
 
+    /**
+     * Do not use this constructor unless you know what you are doing.
+     */
     public MediaTranscoderEngine() {
     }
 
@@ -55,14 +64,21 @@ public class MediaTranscoderEngine {
     }
 
     /**
+     * NOTE: This method is thread safe.
+     */
+    public double getProgress() {
+        return mProgress;
+    }
+
+    /**
      * Run video transcoding. Blocks current thread.
      * Audio data will not be transcoded; original stream will be wrote to output file.
      *
-     * @param outputPath  File path to output transcoded video file.
-     * @param videoFormat Output video format.
+     * @param outputPath     File path to output transcoded video file.
+     * @param formatStrategy Output format strategy.
      * @throws IOException when input or output file could not be opened.
      */
-    public void transcodeVideo(String outputPath, MediaFormat videoFormat) throws IOException {
+    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException {
         if (outputPath == null) {
             throw new NullPointerException("Output path cannot be null.");
         }
@@ -75,7 +91,7 @@ public class MediaTranscoderEngine {
             mExtractor.setDataSource(mInputFileDescriptor);
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             setupMetadata();
-            setupTrackTranscoders(videoFormat);
+            setupTrackTranscoders(formatStrategy);
             mMuxer.start();
             runPipelines();
             mMuxer.stop();
@@ -132,11 +148,21 @@ public class MediaTranscoderEngine {
         Log.d(TAG, "Duration (us): " + mDurationUs);
     }
 
-    private void setupTrackTranscoders(MediaFormat outputFormat) {
+    private void setupTrackTranscoders(MediaFormatStrategy formatStrategy) {
         MediaExtractorUtils.TrackResult trackResult = MediaExtractorUtils.getFirstVideoAndAudioTrack(mExtractor);
-        mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, outputFormat, mMuxer);
+        MediaFormat videoOutputFormat = formatStrategy.createVideoOutputFormat(trackResult.mVideoTrackFormat);
+        MediaFormat audioOutputFormat = formatStrategy.createAudioOutputFormat(trackResult.mAudioTrackFormat);
+        if (videoOutputFormat == null) {
+            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, mMuxer);
+        } else {
+            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, mMuxer);
+        }
         mVideoTrackTranscoder.setup();
-        mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, mMuxer);
+        if (audioOutputFormat == null) {
+            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, mMuxer);
+        } else {
+            throw new UnsupportedOperationException("Transcoding audio tracks currently not supported.");
+        }
         mAudioTrackTranscoder.setup();
         mVideoTrackTranscoder.determineFormat();
         mAudioTrackTranscoder.determineFormat();
@@ -148,17 +174,21 @@ public class MediaTranscoderEngine {
 
     private void runPipelines() {
         long loopCount = 0;
-        if (mDurationUs <= 0 && mProgressCallback != null) {
-            mProgressCallback.onProgress(-1.0); // unknown
+        if (mDurationUs <= 0) {
+            double progress = PROGRESS_UNKNOWN;
+            mProgress = progress;
+            if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
         }
         while (!(mVideoTrackTranscoder.isFinished() && mAudioTrackTranscoder.isFinished())) {
             boolean stepped = mVideoTrackTranscoder.stepPipeline()
                     || mAudioTrackTranscoder.stepPipeline();
             loopCount++;
-            if (mDurationUs > 0 && mProgressCallback != null && loopCount % PROGRESS_INTERVAL_STEPS == 0) {
+            if (mDurationUs > 0 && loopCount % PROGRESS_INTERVAL_STEPS == 0) {
                 double videoProgress = mVideoTrackTranscoder.isFinished() ? 1.0 : Math.min(1.0, (double) mVideoTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
                 double audioProgress = mAudioTrackTranscoder.isFinished() ? 1.0 : Math.min(1.0, (double) mAudioTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
-                mProgressCallback.onProgress((videoProgress + audioProgress) / 2.0);
+                double progress = (videoProgress + audioProgress) / 2.0;
+                mProgress = progress;
+                if (mProgressCallback != null) mProgressCallback.onProgress(progress);
             }
             if (!stepped) {
                 try {

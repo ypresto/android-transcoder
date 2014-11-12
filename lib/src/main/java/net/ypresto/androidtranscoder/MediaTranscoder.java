@@ -15,14 +15,17 @@
  */
 package net.ypresto.androidtranscoder;
 
+import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
 import net.ypresto.androidtranscoder.format.MediaFormatPresets;
+import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
@@ -60,12 +63,93 @@ public class MediaTranscoder {
 
     /**
      * Transcodes video file asynchronously.
+     * Audio track will be kept unchanged.
      *
      * @param inFileDescriptor FileDescriptor for input.
      * @param outPath          File path for output.
      * @param listener         Listener instance for callback.
+     * @deprecated Use {@link #transcodeVideo(java.io.FileDescriptor, String, android.media.MediaFormat, net.ypresto.androidtranscoder.MediaTranscoder.Listener)} which accepts output video format.
      */
+    @Deprecated
     public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
+        transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
+            @Override
+            public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
+                return MediaFormatPresets.getExportPreset960x540();
+            }
+
+            @Override
+            public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
+                return null;
+            }
+        }, listener);
+    }
+
+    /**
+     * Transcodes video file asynchronously.
+     * Audio track will be kept unchanged.
+     *
+     * @param inPath            File path for input.
+     * @param outPath           File path for output.
+     * @param outFormatStrategy Strategy for output video format.
+     * @param listener          Listener instance for callback.
+     * @throws IOException if input file could not be read.
+     */
+    public void transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) throws IOException {
+        FileInputStream fileInputStream = null;
+        FileDescriptor inFileDescriptor;
+        try {
+            fileInputStream = new FileInputStream(inPath);
+            inFileDescriptor = fileInputStream.getFD();
+        } catch (IOException e) {
+            if (fileInputStream != null) {
+                try {
+                    fileInputStream.close();
+                } catch (IOException eClose) {
+                    Log.e(TAG, "Can't close input stream: ", eClose);
+                }
+            }
+            throw e;
+        }
+        final FileInputStream finalFileInputStream = fileInputStream;
+        transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, new Listener() {
+            @Override
+            public void onTranscodeProgress(double progress) {
+                listener.onTranscodeProgress(progress);
+            }
+
+            @Override
+            public void onTranscodeCompleted() {
+                listener.onTranscodeCompleted();
+                closeStream();
+            }
+
+            @Override
+            public void onTranscodeFailed(Exception exception) {
+                listener.onTranscodeFailed(exception);
+                closeStream();
+            }
+
+            private void closeStream() {
+                try {
+                    finalFileInputStream.close();
+                } catch (IOException e) {
+                    Log.e(TAG, "Can't close input stream: ", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Transcodes video file asynchronously.
+     * Audio track will be kept unchanged.
+     *
+     * @param inFileDescriptor  FileDescriptor for input.
+     * @param outPath           File path for output.
+     * @param outFormatStrategy Strategy for output video format.
+     * @param listener          Listener instance for callback.
+     */
+    public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
@@ -87,7 +171,7 @@ public class MediaTranscoder {
                         }
                     });
                     engine.setDataSource(inFileDescriptor);
-                    engine.transcodeVideo(outPath, MediaFormatPresets.getExportPreset960x540());
+                    engine.transcodeVideo(outPath, outFormatStrategy);
                 } catch (IOException e) {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);

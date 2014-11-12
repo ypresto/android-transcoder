@@ -1,4 +1,4 @@
-AndroidTranscoder
+android-transcoder
 =================
 
 Hardware accelerated transcoder for Android, written in pure Java.
