@@ -36,6 +36,7 @@ publish {
     licences = ['Apache-2.0']
     website = 'https://github.com/ypresto/android-transcoder'
     autoPublish = false
+    dryRun = false
 }
 
 dependencies {
