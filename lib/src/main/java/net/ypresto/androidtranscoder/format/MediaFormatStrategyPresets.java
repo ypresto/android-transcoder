@@ -15,34 +15,40 @@
  */
 package net.ypresto.androidtranscoder.format;
 
-import android.media.MediaFormat;
-import android.util.Log;
-
 public class MediaFormatStrategyPresets {
+    /**
+     * @deprecated Use {@link #createExportPreset960x540Strategy()}.
+     */
+    @Deprecated
     public static final MediaFormatStrategy EXPORT_PRESET_960x540 = new ExportPreset960x540Strategy();
 
-    private MediaFormatStrategyPresets() {
+    /**
+     * Preset based on Nexus 4 camera recording with 720p quality.
+     * This preset is ensured to work on any Android >=4.3 devices by Android CTS (if codec is available).
+     */
+    public static MediaFormatStrategy createAndroid720pStrategy() {
+        return new Android720pFormatStrategy();
     }
 
-    private static class ExportPreset960x540Strategy implements MediaFormatStrategy {
-        private static final String TAG = "ExportPreset960x540Strategy";
+    /**
+     * Preset based on Nexus 4 camera recording with 720p quality.
+     * This preset is ensured to work on any Android >=4.3 devices by Android CTS (if codec is available).
+     *
+     * @param bitRate Preferred bit rate for encoding.
+     */
+    public static MediaFormatStrategy createAndroid720pStrategy(int bitRate) {
+        return new Android720pFormatStrategy(bitRate);
+    }
 
-        @Override
-        public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
-            // TODO: detect non-baseline profile and throw exception
-            int width = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
-            int height = inputFormat.getInteger(MediaFormat.KEY_HEIGHT);
-            MediaFormat outputFormat = MediaFormatPresets.getExportPreset960x540(width, height);
-            int outWidth = outputFormat.getInteger(MediaFormat.KEY_WIDTH);
-            int outHeight = outputFormat.getInteger(MediaFormat.KEY_HEIGHT);
-            Log.d(TAG, String.format("inputFormat: %dx%d => outputFormat: %dx%d", width, height, outWidth, outHeight));
-            return outputFormat;
-        }
+    /**
+     * Preset similar to iOS SDK's AVAssetExportPreset960x540.
+     * Note that encoding resolutions of this preset are not supported in all devices e.g. Nexus 4.
+     * On unsupported device encoded video stream will be broken without any exception.
+     */
+    public static MediaFormatStrategy createExportPreset960x540Strategy() {
+        return new ExportPreset960x540Strategy();
+    }
 
-        @Override
-        public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
-            // TODO
-            return null;
-        }
+    private MediaFormatStrategyPresets() {
     }
 }

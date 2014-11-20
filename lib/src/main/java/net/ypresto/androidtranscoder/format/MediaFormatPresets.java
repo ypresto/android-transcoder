@@ -39,7 +39,9 @@ public class MediaFormatPresets {
     }
 
     /**
-     * Preset similar to iOS SDK's AVAssetExportPreset960x540
+     * Preset similar to iOS SDK's AVAssetExportPreset960x540.
+     * Note that encoding resolutions of this preset are not supported in all devices e.g. Nexus 4.
+     * On unsupported device encoded video stream will be broken without any exception.
      * @param originalWidth Input video width.
      * @param originalHeight Input video height.
      * @return MediaFormat instance, or null if pass through.
@@ -53,7 +55,7 @@ public class MediaFormatPresets {
         int residue = LONGER_LENGTH_960x540 * shorterLength % longerLength;
         if (residue != 0) {
             double ambiguousShorter = (double) LONGER_LENGTH_960x540 * shorterLength / longerLength;
-            throw new IllegalArgumentException(String.format(
+            throw new OutputFormatUnavailableException(String.format(
                     "Could not fit to integer, original: (%d, %d), scaled: (%d, %f)",
                     longerLength, shorterLength, LONGER_LENGTH_960x540, ambiguousShorter));
         }

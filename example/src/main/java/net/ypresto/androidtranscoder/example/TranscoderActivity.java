@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -23,6 +24,7 @@ import java.io.IOException;
 
 
 public class TranscoderActivity extends Activity {
+    private static final String TAG = "TranscoderActivity";
     private static final int REQUEST_CODE_PICK = 1;
 
     @Override
@@ -44,7 +46,7 @@ public class TranscoderActivity extends Activity {
                 final File file;
                 if (resultCode == RESULT_OK) {
                     try {
-                        file = File.createTempFile("transcode_test_", ".mp4", getExternalCacheDir());
+                        file = File.createTempFile("transcode_test", ".mp4", getExternalFilesDir(null));
                     } catch (IOException e) {
                         Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
                         return;
@@ -61,6 +63,7 @@ public class TranscoderActivity extends Activity {
                     final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
                     final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
                     progressBar.setMax(1000);
+                    final long startTime = SystemClock.uptimeMillis();
                     MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
                         @Override
                         public void onTranscodeProgress(double progress) {
@@ -74,6 +77,8 @@ public class TranscoderActivity extends Activity {
 
                         @Override
                         public void onTranscodeCompleted() {
+                            Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
+                            Toast.makeText(TranscoderActivity.this, "transcoded file placed on " + file, Toast.LENGTH_LONG).show();
                             findViewById(R.id.select_video_button).setEnabled(true);
                             progressBar.setIndeterminate(false);
                             progressBar.setProgress(1000);
@@ -98,8 +103,9 @@ public class TranscoderActivity extends Activity {
                             }
                         }
                     };
+                    Log.d(TAG, "transcoding into " + file);
                     MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-                            MediaFormatStrategyPresets.EXPORT_PRESET_960x540, listener);
+                            MediaFormatStrategyPresets.createAndroid720pStrategy(), listener);
                     findViewById(R.id.select_video_button).setEnabled(false);
                 }
                 break;
