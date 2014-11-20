@@ -68,7 +68,7 @@ public class MediaTranscoder {
      * @param inFileDescriptor FileDescriptor for input.
      * @param outPath          File path for output.
      * @param listener         Listener instance for callback.
-     * @deprecated Use {@link #transcodeVideo(java.io.FileDescriptor, String, android.media.MediaFormat, net.ypresto.androidtranscoder.MediaTranscoder.Listener)} which accepts output video format.
+     * @deprecated Use {@link #transcodeVideo(java.io.FileDescriptor, String, net.ypresto.androidtranscoder.format.MediaFormatStrategy, net.ypresto.androidtranscoder.MediaTranscoder.Listener)} which accepts output video format.
      */
     @Deprecated
     public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
