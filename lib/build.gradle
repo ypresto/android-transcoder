@@ -15,11 +15,8 @@ android {
     buildToolsVersion "19.1.0"
 
     defaultConfig {
-        applicationId "net.ypresto.androidtranscoder"
         minSdkVersion 18
         targetSdkVersion 19
-        versionCode 1
-        versionName "1.0"
     }
     buildTypes {
         release {
@@ -32,7 +29,7 @@ android {
 publish {
     groupId = 'net.ypresto.androidtranscoder'
     artifactId = 'android-transcoder'
-    version = '0.1.5-SNAPSHOT'
+    version = '0.1.6-SNAPSHOT'
     licences = ['Apache-2.0']
     website = 'https://github.com/ypresto/android-transcoder'
     autoPublish = false
