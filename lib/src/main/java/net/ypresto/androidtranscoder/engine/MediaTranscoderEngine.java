@@ -148,7 +148,7 @@ public class MediaTranscoderEngine {
         Log.d(TAG, "Duration (us): " + mDurationUs);
     }
 
-    private void setupTrackTranscoders(MediaFormatStrategy formatStrategy) {
+    private void setupTrackTranscoders(MediaFormatStrategy formatStrategy) throws IOException {
         MediaExtractorUtils.TrackResult trackResult = MediaExtractorUtils.getFirstVideoAndAudioTrack(mExtractor);
         MediaFormat videoOutputFormat = formatStrategy.createVideoOutputFormat(trackResult.mVideoTrackFormat);
         MediaFormat audioOutputFormat = formatStrategy.createAudioOutputFormat(trackResult.mAudioTrackFormat);

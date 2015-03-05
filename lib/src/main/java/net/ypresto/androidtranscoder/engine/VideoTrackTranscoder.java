@@ -21,6 +21,7 @@ import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.util.Log;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 
 // Refer: https://android.googlesource.com/platform/cts/+/lollipop-release/tests/tests/media/src/android/media/cts/ExtractDecodeEditEncodeMuxTest.java
@@ -35,7 +36,6 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private final MediaFormat mOutputFormat;
     private final MediaMuxer mMuxer;
     private final MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
-    private boolean mWritingToMuxerStarted;
     private MediaCodec mDecoder;
     private MediaCodec mEncoder;
     private ByteBuffer[] mDecoderInputBuffers;
@@ -62,7 +62,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     }
 
     @Override
-    public void setup() {
+    public void setup() throws IOException {
         mExtractor.selectTrack(mTrackIndex);
         mEncoder = MediaCodec.createEncoderByType(mOutputFormat.getString(MediaFormat.KEY_MIME));
         mEncoder.configure(mOutputFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);

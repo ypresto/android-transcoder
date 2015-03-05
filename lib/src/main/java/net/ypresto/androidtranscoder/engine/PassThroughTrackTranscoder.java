@@ -15,6 +15,7 @@
  */
 package net.ypresto.androidtranscoder.engine;
 
+import android.annotation.SuppressLint;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
@@ -63,6 +64,7 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
     }
 
+    @SuppressLint("Assert")
     @Override
     public boolean stepPipeline() {
         if (mIsEOS) return false;
