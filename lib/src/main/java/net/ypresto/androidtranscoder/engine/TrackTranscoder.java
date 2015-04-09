@@ -17,11 +17,9 @@ package net.ypresto.androidtranscoder.engine;
 
 import android.media.MediaFormat;
 
-import java.io.IOException;
-
 public interface TrackTranscoder {
 
-    void setup() throws IOException;
+    void setup();
 
     /**
      * Get actual MediaFormat which is used to write to muxer.
