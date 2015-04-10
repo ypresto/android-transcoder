@@ -47,13 +47,13 @@ repositories {
 ```
 
 ```
-compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.4'
+compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.7'
 ```
 
 ## License
 
 ```
-Copyright (C) 2014 Yuya Tanaka
+Copyright (C) 2015 Yuya Tanaka
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
