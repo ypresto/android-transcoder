@@ -77,6 +77,7 @@ public class MediaTranscoderEngine {
      * @param outputPath     File path to output transcoded video file.
      * @param formatStrategy Output format strategy.
      * @throws IOException when input or output file could not be opened.
+     * @throws InvalidOutputFormatException when output format is not supported.
      */
     public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException {
         if (outputPath == null) {
@@ -152,6 +153,10 @@ public class MediaTranscoderEngine {
         MediaExtractorUtils.TrackResult trackResult = MediaExtractorUtils.getFirstVideoAndAudioTrack(mExtractor);
         MediaFormat videoOutputFormat = formatStrategy.createVideoOutputFormat(trackResult.mVideoTrackFormat);
         MediaFormat audioOutputFormat = formatStrategy.createAudioOutputFormat(trackResult.mAudioTrackFormat);
+        if (videoOutputFormat == null && audioOutputFormat == null) {
+            throw new InvalidOutputFormatException("MediaFormatStrategy returned pass-through for both video and audio. No transcoding is necessary.");
+        }
+
         if (videoOutputFormat == null) {
             mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, mMuxer);
         } else {
@@ -166,6 +171,8 @@ public class MediaTranscoderEngine {
         mAudioTrackTranscoder.setup();
         mVideoTrackTranscoder.determineFormat();
         mAudioTrackTranscoder.determineFormat();
+        MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
+        MediaFormatValidator.validateAudioOutputFormat(mAudioTrackTranscoder.getDeterminedFormat());
         mVideoTrackTranscoder.addTrackToMuxer();
         mAudioTrackTranscoder.addTrackToMuxer();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);

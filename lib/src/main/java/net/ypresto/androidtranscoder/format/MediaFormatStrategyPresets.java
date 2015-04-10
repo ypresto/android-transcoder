@@ -25,6 +25,7 @@ public class MediaFormatStrategyPresets {
     /**
      * Preset based on Nexus 4 camera recording with 720p quality.
      * This preset is ensured to work on any Android >=4.3 devices by Android CTS (if codec is available).
+     * Default bitrate is 8Mbps. {@link #createAndroid720pStrategy(int)} to specify bitrate.
      */
     public static MediaFormatStrategy createAndroid720pStrategy() {
         return new Android720pFormatStrategy();

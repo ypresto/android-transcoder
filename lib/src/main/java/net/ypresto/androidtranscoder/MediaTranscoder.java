@@ -68,7 +68,7 @@ public class MediaTranscoder {
      * @param inFileDescriptor FileDescriptor for input.
      * @param outPath          File path for output.
      * @param listener         Listener instance for callback.
-     * @deprecated Use {@link #transcodeVideo(java.io.FileDescriptor, String, net.ypresto.androidtranscoder.format.MediaFormatStrategy, net.ypresto.androidtranscoder.MediaTranscoder.Listener)} which accepts output video format.
+     * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, MediaTranscoder.Listener)} which accepts output video format.
      */
     @Deprecated
     public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
@@ -177,7 +177,7 @@ public class MediaTranscoder {
                             + " or could not open output file ('" + outPath + "') .", e);
                     caughtException = e;
                 } catch (RuntimeException e) {
-                    Log.e(TAG, "Fatal error while transcoding, this might be invalid output format or bug in engine or Android.", e);
+                    Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
                     caughtException = e;
                 }
 
@@ -212,8 +212,8 @@ public class MediaTranscoder {
         /**
          * Called when transcode failed.
          *
-         * @param exception Exception caused failure. Note that it IS NOT {@link java.lang.Throwable}.
-         *                  This means {@link java.lang.Error} won't be caught.
+         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcodeVideo(String, MediaFormatStrategy)}.
+         *                  Note that it IS NOT {@link java.lang.Throwable}. This means {@link java.lang.Error} won't be caught.
          */
         void onTranscodeFailed(Exception exception);
     }

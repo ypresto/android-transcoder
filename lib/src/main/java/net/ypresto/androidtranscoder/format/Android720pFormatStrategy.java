@@ -20,7 +20,7 @@ import android.media.MediaFormat;
 import android.util.Log;
 
 class Android720pFormatStrategy implements MediaFormatStrategy {
-    private static final String TAG = "Android720pFormatStrategy";
+    private static final String TAG = "720pFormatStrategy";
     private static final int LONGER_LENGTH = 1280;
     private static final int SHORTER_LENGTH = 720;
     private static final int DEFAULT_BITRATE = 8000 * 1000; // From Nexus 4 Camera in 720p
