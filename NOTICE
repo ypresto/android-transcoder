@@ -1,0 +1,14 @@
+android-transcoder
+Copyright (C) 2014-2015 Yuya Tanaka
+
+This product includes software developed by
+Yuya Tanaka (http://ypresto.net/).
+
+This software contains code derived from
+Android Compatibility Test Suite
+(https://android.googlesource.com/platform/cts/), which is developed by
+The Android Open Source Project (https://source.android.com/) and
+is available under a "Apache License 2.0".
+
+This product depends on jcodec (http://jcodec.org/), which is developed
+by The JCodec project and available under a "FreeBSD license".
