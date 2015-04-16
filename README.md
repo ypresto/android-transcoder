@@ -50,6 +50,14 @@ repositories {
 compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.7'
 ```
 
+## Note (PLEASE READ FIRST)
+
+- This library raises `RuntimeException`s (like `IlleagalStateException`) in various situations. Please catch it and provide alternate logics. I know this is bad design according to Effective Java; just is TODO.
+- Currently this library does not generate streaming-aware mp4 file.
+Use [qtfaststart-java](https://github.com/ypresto/qtfaststart-java) to place moov atom at beginning of file.
+- Android does not gurantees that all devices have bug-free codecs/accelerators for your codec parameters (especially, resolution). Refer [supported media formats](http://developer.android.com/guide/appendix/media-formats.html) for parameters guaranteed by [CTS](https://source.android.com/compatibility/cts-intro.html).
+- This library does not support video files recorded by other device like digital cameras, iOS (mov files, including non-baseline profile h.264), etc.
+
 ## License
 
 ```
