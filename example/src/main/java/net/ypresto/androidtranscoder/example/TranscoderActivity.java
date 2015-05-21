@@ -48,6 +48,7 @@ public class TranscoderActivity extends Activity {
                     try {
                         file = File.createTempFile("transcode_test", ".mp4", getExternalFilesDir(null));
                     } catch (IOException e) {
+                        Log.e(TAG, "Failed to create temporary file.", e);
                         Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
                         return;
                     }
