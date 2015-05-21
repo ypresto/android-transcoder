@@ -24,21 +24,30 @@ import java.util.Arrays;
 
 public class AvcCsdUtils {
     // Refer: https://android.googlesource.com/platform/frameworks/av/+/lollipop-release/media/libstagefright/MediaCodec.cpp#2198
-    private static final byte[] AVC_CSD_PREFIX = {0x00, 0x00, 0x00, 0x01};
+    // Refer: http://stackoverflow.com/a/2861340
+    private static final byte[] AVC_START_CODE_3 = {0x00, 0x00, 0x01};
+    private static final byte[] AVC_START_CODE_4 = {0x00, 0x00, 0x00, 0x01};
     // Refer: http://www.cardinalpeak.com/blog/the-h-264-sequence-parameter-set/
     private static final byte AVC_SPS_NAL = 103; // 0<<7 + 3<<5 + 7<<0
 
     public static ByteBuffer getSpsBuffer(MediaFormat format) {
         ByteBuffer prefixedSpsBuffer = format.getByteBuffer(MediaFormatExtraConstants.KEY_AVC_SPS).asReadOnlyBuffer();
-        byte[] csdPrefix = new byte[4];
-        prefixedSpsBuffer.get(csdPrefix);
-        if (!Arrays.equals(csdPrefix, AVC_CSD_PREFIX)) {
-            throw new IllegalStateException("Wrong csd-0 prefix.");
-        }
+        skipStartCode(prefixedSpsBuffer);
         if (prefixedSpsBuffer.get() != AVC_SPS_NAL) {
             throw new IllegalStateException("Got non SPS NAL data.");
         }
         return prefixedSpsBuffer.slice();
+    }
+
+    private static void skipStartCode(ByteBuffer prefixedSpsBuffer) {
+        byte[] prefix3 = new byte[3];
+        prefixedSpsBuffer.get(prefix3);
+        if (Arrays.equals(prefix3, AVC_START_CODE_3)) return;
+
+        byte[] prefix4 = Arrays.copyOf(prefix3, 4);
+        prefix4[3] = prefixedSpsBuffer.get();
+        if (Arrays.equals(prefix4, AVC_START_CODE_4)) return;
+        throw new IllegalStateException("AVC NAL start code does not found in csd.");
     }
 
     private AvcCsdUtils() {
