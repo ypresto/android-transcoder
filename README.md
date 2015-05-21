@@ -47,7 +47,7 @@ repositories {
 ```
 
 ```
-compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.7'
+compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.8'
 ```
 
 ## Note (PLEASE READ FIRST)
