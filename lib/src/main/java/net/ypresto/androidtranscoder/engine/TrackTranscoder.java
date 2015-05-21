@@ -23,23 +23,11 @@ public interface TrackTranscoder {
 
     /**
      * Get actual MediaFormat which is used to write to muxer.
-     * To determine you should call {@link #determineFormat()}.
+     * To determine you should call {@link #stepPipeline()} several times.
      *
      * @return Actual output format determined by coder, or {@code null} if not yet determined.
      */
     MediaFormat getDeterminedFormat();
-
-    /**
-     * You should call this after {@link #determineFormat()} and before {@link #stepPipeline()}.
-     * When all transcoder added their tracks then you may call {@link android.media.MediaMuxer#start()}.
-     */
-    void addTrackToMuxer();
-
-    /**
-     * Fill pipeline without writing to muxer until actual output format is determined.
-     * You should not select any tracks on MediaExtractor to determine correctly.
-     */
-    void determineFormat();
 
     /**
      * Step pipeline if output is available in any step of it.

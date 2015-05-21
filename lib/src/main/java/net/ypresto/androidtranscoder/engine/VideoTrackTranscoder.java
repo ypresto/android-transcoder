@@ -18,8 +18,6 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
-import android.media.MediaMuxer;
-import android.util.Log;
 
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
 
@@ -36,14 +34,13 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private final MediaExtractor mExtractor;
     private final int mTrackIndex;
     private final MediaFormat mOutputFormat;
-    private final MediaMuxer mMuxer;
+    private final QueuedMuxer mMuxer;
     private final MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
     private MediaCodec mDecoder;
     private MediaCodec mEncoder;
     private ByteBuffer[] mDecoderInputBuffers;
     private ByteBuffer[] mEncoderOutputBuffers;
     private MediaFormat mActualOutputFormat;
-    private int mMuxerTrackIndex = -1;
     private OutputSurface mDecoderOutputSurfaceWrapper;
     private InputSurface mEncoderInputSurfaceWrapper;
     private boolean mIsExtractorEOS;
@@ -53,10 +50,8 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
 
-    public VideoTrackTranscoder(MediaExtractor extractor,
-                                int trackIndex,
-                                MediaFormat outputFormat,
-                                MediaMuxer muxer) {
+    public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
+                                MediaFormat outputFormat, QueuedMuxer muxer) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
@@ -103,52 +98,17 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     }
 
     @Override
-    public void addTrackToMuxer() {
-        if (mActualOutputFormat == null) {
-            throw new IllegalStateException("Format is not determined yet.");
-        }
-        mMuxerTrackIndex = mMuxer.addTrack(mActualOutputFormat);
-        Log.v(TAG, "Added track #" + mMuxerTrackIndex + " with " + mActualOutputFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
-    }
-
-    @Override
-    public void determineFormat() {
-        try {
-            mExtractor.selectTrack(mTrackIndex);
-            while (mActualOutputFormat == null && !mIsEncoderEOS) {
-                int trackIndex = mExtractor.getSampleTrackIndex();
-                if (trackIndex >= 0 && trackIndex != mTrackIndex) {
-                    throw new IllegalStateException("You should not select any tracks on MediaExtractor when calling determineFormat()."
-                            + " Expected track " + mTrackIndex + " but received sample of track " + trackIndex + ".");
-                }
-
-                // fill pipeline
-                drainExtractor(0);
-                while (drainDecoder(0) == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY) ;
-                while (mActualOutputFormat == null && drainEncoder(0, false) == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY) ;
-            }
-            if (mActualOutputFormat == null) {
-                throw new IllegalStateException("Actual output format could not be determined for track: " + mTrackIndex);
-            }
-        } finally {
-            resetCodecs();
-            mExtractor.seekTo(0, MediaExtractor.SEEK_TO_PREVIOUS_SYNC); // reset position
-            mExtractor.unselectTrack(mTrackIndex);
-        }
-    }
-
-    @Override
     public boolean stepPipeline() {
         boolean busy = false;
 
         int status;
-        while (drainEncoder(0, true) != DRAIN_STATE_NONE) { busy = true; }
+        while (drainEncoder(0) != DRAIN_STATE_NONE) busy = true;
         do {
             status = drainDecoder(0);
             if (status != DRAIN_STATE_NONE) busy = true;
             // NOTE: not repeating to keep from deadlock when encoder is full.
         } while (status == DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY);
-        while (drainExtractor(0) != DRAIN_STATE_NONE) { busy = true; }
+        while (drainExtractor(0) != DRAIN_STATE_NONE) busy = true;
 
         return busy;
     }
@@ -184,12 +144,6 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mEncoder.release();
             mEncoder = null;
         }
-    }
-
-    private void resetCodecs() {
-        mDecoder.flush();
-        mEncoder.flush();
-        mIsExtractorEOS =  mIsDecoderEOS =  mIsEncoderEOS = false;
     }
 
     private int drainExtractor(long timeoutUs) {
@@ -240,30 +194,37 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         return DRAIN_STATE_CONSUMED;
     }
 
-    private int drainEncoder(long timeoutUs, boolean writeToMuxer) {
+    private int drainEncoder(long timeoutUs) {
         if (mIsEncoderEOS) return DRAIN_STATE_NONE;
         int result = mEncoder.dequeueOutputBuffer(mBufferInfo, timeoutUs);
         switch (result) {
             case MediaCodec.INFO_TRY_AGAIN_LATER:
                 return DRAIN_STATE_NONE;
             case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
-                assert mActualOutputFormat == null;
+                if (mActualOutputFormat != null)
+                    throw new RuntimeException("Video output format changed twice.");
                 mActualOutputFormat = mEncoder.getOutputFormat();
+                mMuxer.setOutputFormat(QueuedMuxer.SampleType.VIDEO, mActualOutputFormat);
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
             case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
                 mEncoderOutputBuffers = mEncoder.getOutputBuffers();
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
-        assert mActualOutputFormat != null;
+        if (mActualOutputFormat == null) {
+            throw new RuntimeException("Could not determine actual output format.");
+        }
 
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
         }
-        if (writeToMuxer) {
-            mMuxer.writeSampleData(mMuxerTrackIndex, mEncoderOutputBuffers[result], mBufferInfo);
-            mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
+        if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+            // SPS or PPS, which should be passed by MediaFormat.
+            mEncoder.releaseOutputBuffer(result, false);
+            return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
+        mMuxer.writeSampleData(QueuedMuxer.SampleType.VIDEO, mEncoderOutputBuffers[result], mBufferInfo);
+        mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);
         return DRAIN_STATE_CONSUMED;
     }

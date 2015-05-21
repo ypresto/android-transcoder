@@ -93,7 +93,6 @@ public class MediaTranscoderEngine {
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             setupMetadata();
             setupTrackTranscoders(formatStrategy);
-            mMuxer.start();
             runPipelines();
             mMuxer.stop();
         } finally {
@@ -156,25 +155,26 @@ public class MediaTranscoderEngine {
         if (videoOutputFormat == null && audioOutputFormat == null) {
             throw new InvalidOutputFormatException("MediaFormatStrategy returned pass-through for both video and audio. No transcoding is necessary.");
         }
+        QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, new QueuedMuxer.Listener() {
+            @Override
+            public void onDetermineOutputFormat() {
+                MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
+                MediaFormatValidator.validateAudioOutputFormat(mAudioTrackTranscoder.getDeterminedFormat());
+            }
+        });
 
         if (videoOutputFormat == null) {
-            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, mMuxer);
+            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
         } else {
-            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, mMuxer);
+            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer);
         }
         mVideoTrackTranscoder.setup();
         if (audioOutputFormat == null) {
-            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, mMuxer);
+            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
         } else {
             throw new UnsupportedOperationException("Transcoding audio tracks currently not supported.");
         }
         mAudioTrackTranscoder.setup();
-        mVideoTrackTranscoder.determineFormat();
-        mAudioTrackTranscoder.determineFormat();
-        MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
-        MediaFormatValidator.validateAudioOutputFormat(mAudioTrackTranscoder.getDeterminedFormat());
-        mVideoTrackTranscoder.addTrackToMuxer();
-        mAudioTrackTranscoder.addTrackToMuxer();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);
         mExtractor.selectTrack(trackResult.mAudioTrackIndex);
     }
