@@ -3,6 +3,18 @@ android-transcoder
 
 Hardware accelerated transcoder for Android, written in pure Java.
 
+## Requirements
+
+API Level 18 (Android 4.3, JELLY_BEAN_MR2) or later.
+If your app targets older Android, you should add below line to AndroidManifest.xml:
+
+```
+<!-- Only supports API >= 18 -->
+<uses-sdk tools:overrideLibrary="net.ypresto.androidtranscoder" />
+```
+
+Please ensure checking Build.VERSION by your self.
+
 ## Usage
 
 ```
