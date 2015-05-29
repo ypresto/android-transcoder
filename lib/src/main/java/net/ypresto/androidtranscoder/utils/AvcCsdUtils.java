@@ -31,7 +31,11 @@ public class AvcCsdUtils {
     private static final byte AVC_SPS_NAL = 103; // 0<<7 + 3<<5 + 7<<0
 
     public static ByteBuffer getSpsBuffer(MediaFormat format) {
-        ByteBuffer prefixedSpsBuffer = format.getByteBuffer(MediaFormatExtraConstants.KEY_AVC_SPS).asReadOnlyBuffer();
+        ByteBuffer sourceBuffer = format.getByteBuffer(MediaFormatExtraConstants.KEY_AVC_SPS).asReadOnlyBuffer(); // might be direct buffer
+        ByteBuffer prefixedSpsBuffer = ByteBuffer.allocate(sourceBuffer.limit()).order(sourceBuffer.order());
+        prefixedSpsBuffer.put(sourceBuffer);
+        prefixedSpsBuffer.flip();
+
         skipStartCode(prefixedSpsBuffer);
         if (prefixedSpsBuffer.get() != AVC_SPS_NAL) {
             throw new IllegalStateException("Got non SPS NAL data.");

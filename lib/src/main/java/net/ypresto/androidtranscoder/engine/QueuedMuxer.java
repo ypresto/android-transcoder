@@ -21,6 +21,7 @@ import android.media.MediaMuxer;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -96,7 +97,7 @@ public class QueuedMuxer {
         byteBuf.limit(bufferInfo.offset + bufferInfo.size);
         byteBuf.position(bufferInfo.offset);
         if (mByteBuffer == null) {
-            mByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(byteBuf.order());
+            mByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
         }
         mByteBuffer.put(byteBuf);
         mSampleInfoList.add(new SampleInfo(sampleType, bufferInfo.size, bufferInfo));

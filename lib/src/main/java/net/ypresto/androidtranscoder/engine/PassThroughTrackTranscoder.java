@@ -21,6 +21,7 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 public class PassThroughTrackTranscoder implements TrackTranscoder {
     private final MediaExtractor mExtractor;
@@ -44,7 +45,7 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
         mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
         mBufferSize = mActualOutputFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
-        mBuffer = ByteBuffer.allocateDirect(mBufferSize);
+        mBuffer = ByteBuffer.allocateDirect(mBufferSize).order(ByteOrder.nativeOrder());
     }
 
     @Override
