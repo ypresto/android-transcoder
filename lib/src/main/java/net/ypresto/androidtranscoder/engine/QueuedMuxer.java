@@ -37,7 +37,7 @@ public class QueuedMuxer {
     private int mVideoTrackIndex;
     private int mAudioTrackIndex;
     private ByteBuffer mByteBuffer;
-    private List<SampleInfo> mSampleInfoList;
+    private final List<SampleInfo> mSampleInfoList;
     private boolean mStarted;
 
     public QueuedMuxer(MediaMuxer muxer, Listener listener) {
@@ -69,10 +69,14 @@ public class QueuedMuxer {
         mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
         Log.v(TAG, "Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
         mMuxer.start();
+        mStarted = true;
+
+        if (mByteBuffer == null) {
+            mByteBuffer = ByteBuffer.allocate(0);
+        }
         mByteBuffer.flip();
         Log.v(TAG, "Output format determined, writing " + mSampleInfoList.size() +
                 " samples / " + mByteBuffer.limit() + " bytes to muxer.");
-        mStarted = true;
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
         int offset = 0;
         for (SampleInfo sampleInfo : mSampleInfoList) {
@@ -80,7 +84,7 @@ public class QueuedMuxer {
             mMuxer.writeSampleData(getTrackIndexForSampleType(sampleInfo.mSampleType), mByteBuffer, bufferInfo);
             offset += sampleInfo.mSize;
         }
-        mSampleInfoList = null;
+        mSampleInfoList.clear();
         mByteBuffer = null;
     }
 
