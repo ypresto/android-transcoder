@@ -76,10 +76,10 @@ public class MediaTranscoderEngine {
      *
      * @param outputPath     File path to output transcoded video file.
      * @param formatStrategy Output format strategy.
-     * @throws IOException when input or output file could not be opened.
+     * @throws IOException                  when input or output file could not be opened.
      * @throws InvalidOutputFormatException when output format is not supported.
      */
-    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException {
+    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
         if (outputPath == null) {
             throw new NullPointerException("Output path cannot be null.");
         }
@@ -95,6 +95,8 @@ public class MediaTranscoderEngine {
             setupTrackTranscoders(formatStrategy);
             runPipelines();
             mMuxer.stop();
+        } catch (InterruptedException e) {
+            throw e;
         } finally {
             try {
                 if (mVideoTrackTranscoder != null) {
@@ -179,7 +181,7 @@ public class MediaTranscoderEngine {
         mExtractor.selectTrack(trackResult.mAudioTrackIndex);
     }
 
-    private void runPipelines() {
+    private void runPipelines() throws InterruptedException {
         long loopCount = 0;
         if (mDurationUs <= 0) {
             double progress = PROGRESS_UNKNOWN;
@@ -201,9 +203,10 @@ public class MediaTranscoderEngine {
                 try {
                     Thread.sleep(SLEEP_TO_WAIT_TRACK_TRANSCODERS);
                 } catch (InterruptedException e) {
-                    // nothing to do
+                    throw e;
                 }
             }
+            if (Thread.interrupted()) throw new InterruptedException();
         }
     }
 

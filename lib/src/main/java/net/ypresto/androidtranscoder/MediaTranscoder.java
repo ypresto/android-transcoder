@@ -27,8 +27,7 @@ import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -38,9 +37,11 @@ public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
     private static final int MAXIMUM_THREAD = 1; // TODO
     private static volatile MediaTranscoder sMediaTranscoder;
+    private Future mFuture;
     private ThreadPoolExecutor mExecutor;
 
     private MediaTranscoder() {
+        mFuture = null;
         mExecutor = new ThreadPoolExecutor(
                 0, MAXIMUM_THREAD, 60, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
@@ -161,8 +162,7 @@ public class MediaTranscoder {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
-        if (mExecutor.isShutdown()) mExecutor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
-        mExecutor.execute(new Runnable() {
+        mFuture = mExecutor.submit(new Runnable() {
             @Override
             public void run() {
                 Exception caughtException = null;
@@ -185,10 +185,11 @@ public class MediaTranscoder {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);
                     caughtException = e;
+                } catch (InterruptedException e) {
+                    Log.i(TAG, "Cancel transcode video file.", e);
+                    caughtException = e;
                 } catch (RuntimeException e) {
-                    if (!(e.getCause() instanceof InterruptedException)) {
-                        Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
-                    }
+                    Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
                     caughtException = e;
                 }
 
@@ -199,7 +200,7 @@ public class MediaTranscoder {
                         if (exception == null) {
                             listener.onTranscodeCompleted();
                         } else {
-                            if (exception.getCause() instanceof InterruptedException) {
+                            if (exception instanceof InterruptedException) {
                                 listener.onTranscodeCanceled();
                             } else {
                                 listener.onTranscodeFailed(exception);
@@ -211,8 +212,11 @@ public class MediaTranscoder {
         });
     }
 
-    public List<Runnable> cancel() {
-        return mExecutor.shutdownNow();
+    /**
+     * Cancel transcode video file
+     */
+    public boolean cancel() {
+        return mFuture != null ? mFuture.cancel(true) : false;
     }
 
     public interface Listener {
