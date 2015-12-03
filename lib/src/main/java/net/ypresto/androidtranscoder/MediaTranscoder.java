@@ -27,6 +27,8 @@ import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -125,6 +127,12 @@ public class MediaTranscoder {
             }
 
             @Override
+            public void onTranscodeCanceled() {
+                listener.onTranscodeCanceled();
+                closeStream();
+            }
+
+            @Override
             public void onTranscodeFailed(Exception exception) {
                 listener.onTranscodeFailed(exception);
                 closeStream();
@@ -153,6 +161,7 @@ public class MediaTranscoder {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
+        if (mExecutor.isShutdown()) mExecutor = (ThreadPoolExecutor) Executors.newCachedThreadPool();
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -177,7 +186,9 @@ public class MediaTranscoder {
                             + " or could not open output file ('" + outPath + "') .", e);
                     caughtException = e;
                 } catch (RuntimeException e) {
-                    Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
+                    if (!(e.getCause() instanceof InterruptedException)) {
+                        Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
+                    }
                     caughtException = e;
                 }
 
@@ -188,12 +199,20 @@ public class MediaTranscoder {
                         if (exception == null) {
                             listener.onTranscodeCompleted();
                         } else {
-                            listener.onTranscodeFailed(exception);
+                            if (exception.getCause() instanceof InterruptedException) {
+                                listener.onTranscodeCanceled();
+                            } else {
+                                listener.onTranscodeFailed(exception);
+                            }
                         }
                     }
                 });
             }
         });
+    }
+
+    public List<Runnable> cancel() {
+        return mExecutor.shutdownNow();
     }
 
     public interface Listener {
@@ -208,6 +227,11 @@ public class MediaTranscoder {
          * Called when transcode completed.
          */
         void onTranscodeCompleted();
+
+        /**
+         * Called when transcode canceled.
+         */
+        void onTranscodeCanceled();
 
         /**
          * Called when transcode failed.

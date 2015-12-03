@@ -26,6 +26,7 @@ import java.io.IOException;
 public class TranscoderActivity extends Activity {
     private static final String TAG = "TranscoderActivity";
     private static final int REQUEST_CODE_PICK = 1;
+    private static final int PROGRESS_BAR_MAX = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +36,12 @@ public class TranscoderActivity extends Activity {
             @Override
             public void onClick(View v) {
                 startActivityForResult(new Intent(Intent.ACTION_GET_CONTENT).setType("video/*"), REQUEST_CODE_PICK);
+            }
+        });
+        findViewById(R.id.cancel_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                MediaTranscoder.getInstance().cancel();
             }
         });
     }
@@ -63,7 +70,7 @@ public class TranscoderActivity extends Activity {
                     }
                     final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
                     final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
-                    progressBar.setMax(1000);
+                    progressBar.setMax(PROGRESS_BAR_MAX);
                     final long startTime = SystemClock.uptimeMillis();
                     MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
                         @Override
@@ -72,42 +79,31 @@ public class TranscoderActivity extends Activity {
                                 progressBar.setIndeterminate(true);
                             } else {
                                 progressBar.setIndeterminate(false);
-                                progressBar.setProgress((int) Math.round(progress * 1000));
+                                progressBar.setProgress((int) Math.round(progress * PROGRESS_BAR_MAX));
                             }
                         }
 
                         @Override
                         public void onTranscodeCompleted() {
                             Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                            Toast.makeText(TranscoderActivity.this, "transcoded file placed on " + file, Toast.LENGTH_LONG).show();
-                            findViewById(R.id.select_video_button).setEnabled(true);
-                            progressBar.setIndeterminate(false);
-                            progressBar.setProgress(1000);
+                            transcodefinish(progressBar, PROGRESS_BAR_MAX, "transcoded file placed on " + file, parcelFileDescriptor);
                             startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
-                            try {
-                                parcelFileDescriptor.close();
-                            } catch (IOException e) {
-                                Log.w("Error while closing", e);
-                            }
+                        }
+
+                        @Override
+                        public void onTranscodeCanceled() {
+                            transcodefinish(progressBar, 0, "Transcoder canceled.", parcelFileDescriptor);
                         }
 
                         @Override
                         public void onTranscodeFailed(Exception exception) {
-                            progressBar.setIndeterminate(false);
-                            progressBar.setProgress(0);
-                            findViewById(R.id.select_video_button).setEnabled(true);
-                            Toast.makeText(TranscoderActivity.this, "Transcoder error occurred.", Toast.LENGTH_LONG).show();
-                            try {
-                                parcelFileDescriptor.close();
-                            } catch (IOException e) {
-                                Log.w("Error while closing", e);
-                            }
+                            transcodefinish(progressBar, 0, "Transcoder error occurred.", parcelFileDescriptor);
                         }
                     };
                     Log.d(TAG, "transcoding into " + file);
                     MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
                             MediaFormatStrategyPresets.createAndroid720pStrategy(), listener);
-                    findViewById(R.id.select_video_button).setEnabled(false);
+                    switchButtonEnabled(true);
                 }
                 break;
             }
@@ -133,5 +129,22 @@ public class TranscoderActivity extends Activity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void transcodefinish(ProgressBar progressBar, int progress, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
+        progressBar.setIndeterminate(false);
+        progressBar.setProgress(progress);
+        switchButtonEnabled(false);
+        Toast.makeText(TranscoderActivity.this, toastMessage, Toast.LENGTH_LONG).show();
+        try {
+            parcelFileDescriptor.close();
+        } catch (IOException e) {
+            Log.w("Error while closing", e);
+        }
+    }
+
+    private void switchButtonEnabled(boolean isProgress) {
+        findViewById(R.id.select_video_button).setEnabled(!isProgress);
+        findViewById(R.id.cancel_button).setEnabled(isProgress);
     }
 }
