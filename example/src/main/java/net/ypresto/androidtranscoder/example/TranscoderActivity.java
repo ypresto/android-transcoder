@@ -86,18 +86,18 @@ public class TranscoderActivity extends Activity {
                         @Override
                         public void onTranscodeCompleted() {
                             Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                            transcodefinish(progressBar, PROGRESS_BAR_MAX, "transcoded file placed on " + file, parcelFileDescriptor);
+                            transcodeFinishEvent(progressBar, PROGRESS_BAR_MAX, "transcoded file placed on " + file, parcelFileDescriptor);
                             startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
                         }
 
                         @Override
                         public void onTranscodeCanceled() {
-                            transcodefinish(progressBar, 0, "Transcoder canceled.", parcelFileDescriptor);
+                            transcodeFinishEvent(progressBar, 0, "Transcoder canceled.", parcelFileDescriptor);
                         }
 
                         @Override
                         public void onTranscodeFailed(Exception exception) {
-                            transcodefinish(progressBar, 0, "Transcoder error occurred.", parcelFileDescriptor);
+                            transcodeFinishEvent(progressBar, 0, "Transcoder error occurred.", parcelFileDescriptor);
                         }
                     };
                     Log.d(TAG, "transcoding into " + file);
@@ -131,7 +131,7 @@ public class TranscoderActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void transcodefinish(ProgressBar progressBar, int progress, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
+    private void transcodeFinishEvent(ProgressBar progressBar, int progress, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
         progressBar.setIndeterminate(false);
         progressBar.setProgress(progress);
         switchButtonEnabled(false);
