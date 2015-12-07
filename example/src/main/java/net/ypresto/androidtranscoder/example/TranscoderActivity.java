@@ -21,12 +21,14 @@ import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.concurrent.Future;
 
 
 public class TranscoderActivity extends Activity {
     private static final String TAG = "TranscoderActivity";
     private static final int REQUEST_CODE_PICK = 1;
     private static final int PROGRESS_BAR_MAX = 1000;
+    private Future mFuture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,7 +43,7 @@ public class TranscoderActivity extends Activity {
         findViewById(R.id.cancel_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                MediaTranscoder.getInstance().cancel();
+                mFuture.cancel(true);
             }
         });
     }
@@ -86,22 +88,22 @@ public class TranscoderActivity extends Activity {
                         @Override
                         public void onTranscodeCompleted() {
                             Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                            transcodeFinishEvent(progressBar, PROGRESS_BAR_MAX, "transcoded file placed on " + file, parcelFileDescriptor);
+                            onTranscodeFinished(true, "transcoded file placed on " + file, parcelFileDescriptor);
                             startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
                         }
 
                         @Override
                         public void onTranscodeCanceled() {
-                            transcodeFinishEvent(progressBar, 0, "Transcoder canceled.", parcelFileDescriptor);
+                            onTranscodeFinished(false, "Transcoder canceled.", parcelFileDescriptor);
                         }
 
                         @Override
                         public void onTranscodeFailed(Exception exception) {
-                            transcodeFinishEvent(progressBar, 0, "Transcoder error occurred.", parcelFileDescriptor);
+                            onTranscodeFinished(false, "Transcoder error occurred.", parcelFileDescriptor);
                         }
                     };
                     Log.d(TAG, "transcoding into " + file);
-                    MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
+                    mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
                             MediaFormatStrategyPresets.createAndroid720pStrategy(), listener);
                     switchButtonEnabled(true);
                 }
@@ -131,9 +133,10 @@ public class TranscoderActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void transcodeFinishEvent(ProgressBar progressBar, int progress, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
+    private void onTranscodeFinished(boolean isSuccess, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
+        final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
         progressBar.setIndeterminate(false);
-        progressBar.setProgress(progress);
+        progressBar.setProgress(isSuccess ? PROGRESS_BAR_MAX : 0);
         switchButtonEnabled(false);
         Toast.makeText(TranscoderActivity.this, toastMessage, Toast.LENGTH_LONG).show();
         try {

@@ -78,6 +78,7 @@ public class MediaTranscoderEngine {
      * @param formatStrategy Output format strategy.
      * @throws IOException                  when input or output file could not be opened.
      * @throws InvalidOutputFormatException when output format is not supported.
+     * @throws InterruptedException         when cancel to transcode.
      */
     public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
         if (outputPath == null) {
@@ -95,8 +96,6 @@ public class MediaTranscoderEngine {
             setupTrackTranscoders(formatStrategy);
             runPipelines();
             mMuxer.stop();
-        } catch (InterruptedException e) {
-            throw e;
         } finally {
             try {
                 if (mVideoTrackTranscoder != null) {
@@ -181,7 +180,7 @@ public class MediaTranscoderEngine {
         mExtractor.selectTrack(trackResult.mAudioTrackIndex);
     }
 
-    private void runPipelines() throws InterruptedException {
+    private void runPipelines() {
         long loopCount = 0;
         if (mDurationUs <= 0) {
             double progress = PROGRESS_UNKNOWN;
@@ -203,10 +202,9 @@ public class MediaTranscoderEngine {
                 try {
                     Thread.sleep(SLEEP_TO_WAIT_TRACK_TRANSCODERS);
                 } catch (InterruptedException e) {
-                    throw e;
+                    // nothing to do
                 }
             }
-            if (Thread.interrupted()) throw new InterruptedException();
         }
     }
 
