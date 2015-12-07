@@ -27,10 +27,13 @@ import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
@@ -71,8 +74,8 @@ public class MediaTranscoder {
      * @deprecated Use {@link #transcodeVideo(FileDescriptor, String, MediaFormatStrategy, MediaTranscoder.Listener)} which accepts output video format.
      */
     @Deprecated
-    public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
-        transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
+    public Future transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
+        return transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
             @Override
             public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
                 return MediaFormatPresets.getExportPreset960x540();
@@ -95,7 +98,7 @@ public class MediaTranscoder {
      * @param listener          Listener instance for callback.
      * @throws IOException if input file could not be read.
      */
-    public void transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) throws IOException {
+    public Future transcodeVideo(final String inPath, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) throws IOException {
         FileInputStream fileInputStream = null;
         FileDescriptor inFileDescriptor;
         try {
@@ -112,7 +115,7 @@ public class MediaTranscoder {
             throw e;
         }
         final FileInputStream finalFileInputStream = fileInputStream;
-        transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, new Listener() {
+        return transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, new Listener() {
             @Override
             public void onTranscodeProgress(double progress) {
                 listener.onTranscodeProgress(progress);
@@ -121,6 +124,12 @@ public class MediaTranscoder {
             @Override
             public void onTranscodeCompleted() {
                 listener.onTranscodeCompleted();
+                closeStream();
+            }
+
+            @Override
+            public void onTranscodeCanceled() {
+                listener.onTranscodeCanceled();
                 closeStream();
             }
 
@@ -149,13 +158,14 @@ public class MediaTranscoder {
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
      */
-    public void transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
+    public Future transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
-        mExecutor.execute(new Runnable() {
+        final AtomicReference<Future> futureReference = new AtomicReference<>();
+        final Future<Void> createdFuture = mExecutor.submit(new Callable<Void>() {
             @Override
-            public void run() {
+            public Void call() throws Exception {
                 Exception caughtException = null;
                 try {
                     MediaTranscoderEngine engine = new MediaTranscoderEngine();
@@ -176,6 +186,9 @@ public class MediaTranscoder {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);
                     caughtException = e;
+                } catch (InterruptedException e) {
+                    Log.i(TAG, "Cancel transcode video file.", e);
+                    caughtException = e;
                 } catch (RuntimeException e) {
                     Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
                     caughtException = e;
@@ -188,12 +201,22 @@ public class MediaTranscoder {
                         if (exception == null) {
                             listener.onTranscodeCompleted();
                         } else {
-                            listener.onTranscodeFailed(exception);
+                            Future future = futureReference.get();
+                            if (future != null && future.isCancelled()) {
+                                listener.onTranscodeCanceled();
+                            } else {
+                                listener.onTranscodeFailed(exception);
+                            }
                         }
                     }
                 });
+
+                if (exception != null) throw exception;
+                return null;
             }
         });
+        futureReference.set(createdFuture);
+        return createdFuture;
     }
 
     public interface Listener {
@@ -208,6 +231,11 @@ public class MediaTranscoder {
          * Called when transcode completed.
          */
         void onTranscodeCompleted();
+
+        /**
+         * Called when transcode canceled.
+         */
+        void onTranscodeCanceled();
 
         /**
          * Called when transcode failed.

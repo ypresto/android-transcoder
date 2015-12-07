@@ -76,10 +76,11 @@ public class MediaTranscoderEngine {
      *
      * @param outputPath     File path to output transcoded video file.
      * @param formatStrategy Output format strategy.
-     * @throws IOException when input or output file could not be opened.
+     * @throws IOException                  when input or output file could not be opened.
      * @throws InvalidOutputFormatException when output format is not supported.
+     * @throws InterruptedException         when cancel to transcode.
      */
-    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException {
+    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
         if (outputPath == null) {
             throw new NullPointerException("Output path cannot be null.");
         }
