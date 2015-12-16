@@ -28,7 +28,7 @@ public class TranscoderActivity extends Activity {
     private static final String TAG = "TranscoderActivity";
     private static final int REQUEST_CODE_PICK = 1;
     private static final int PROGRESS_BAR_MAX = 1000;
-    private Future mFuture;
+    private Future<Void> mFuture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
