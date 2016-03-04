@@ -21,6 +21,7 @@ import android.os.Looper;
 import android.util.Log;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
+import net.ypresto.androidtranscoder.engine.MediaTrimTime;
 import net.ypresto.androidtranscoder.format.MediaFormatPresets;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 
@@ -85,7 +86,7 @@ public class MediaTranscoder {
             public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
                 return null;
             }
-        }, listener);
+        }, null, listener);
     }
 
     /**
@@ -115,7 +116,7 @@ public class MediaTranscoder {
             throw e;
         }
         final FileInputStream finalFileInputStream = fileInputStream;
-        return transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, new Listener() {
+        return transcodeVideo(inFileDescriptor, outPath, outFormatStrategy, null, new Listener() {
             @Override
             public void onTranscodeProgress(double progress) {
                 listener.onTranscodeProgress(progress);
@@ -156,9 +157,10 @@ public class MediaTranscoder {
      * @param inFileDescriptor  FileDescriptor for input.
      * @param outPath           File path for output.
      * @param outFormatStrategy Strategy for output video format.
+     * @param mediaTrimTime Media trim time.
      * @param listener          Listener instance for callback.
      */
-    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
+    public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final MediaTrimTime mediaTrimTime, final Listener listener) {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
@@ -181,7 +183,7 @@ public class MediaTranscoder {
                         }
                     });
                     engine.setDataSource(inFileDescriptor);
-                    engine.transcodeVideo(outPath, outFormatStrategy);
+                    engine.transcodeVideo(outPath, outFormatStrategy, mediaTrimTime);
                 } catch (IOException e) {
                     Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);
