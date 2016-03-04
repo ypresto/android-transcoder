@@ -29,14 +29,16 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
     private final QueuedMuxer mMuxer;
     private final QueuedMuxer.SampleType mSampleType;
     private final MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
+    private final MediaTrimTime mMediaTrimTime;
     private int mBufferSize;
     private ByteBuffer mBuffer;
     private boolean mIsEOS;
+    private boolean mIsTrimEOS;
     private MediaFormat mActualOutputFormat;
     private long mWrittenPresentationTimeUs;
 
     public PassThroughTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                      QueuedMuxer muxer, QueuedMuxer.SampleType sampleType) {
+                                      QueuedMuxer muxer, QueuedMuxer.SampleType sampleType, MediaTrimTime mediaTrimTime) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mMuxer = muxer;
@@ -46,6 +48,7 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
         mBufferSize = mActualOutputFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
         mBuffer = ByteBuffer.allocateDirect(mBufferSize).order(ByteOrder.nativeOrder());
+        mMediaTrimTime = mediaTrimTime;
     }
 
     @Override
@@ -71,9 +74,21 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         }
         if (trackIndex != mTrackIndex) return false;
 
+        if (mIsTrimEOS) {
+            mExtractor.advance();
+            return true;
+        }
         mBuffer.clear();
         int sampleSize = mExtractor.readSampleData(mBuffer, 0);
         assert sampleSize <= mBufferSize;
+        if (isPastTrimEndTime(mExtractor.getSampleTime())) {
+            mBuffer.clear();
+            mBufferInfo.set(0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+            mMuxer.writeSampleData(mSampleType, mBuffer, mBufferInfo);
+            mExtractor.advance();
+            mIsTrimEOS = true;
+            return true;
+        }
         boolean isKeyFrame = (mExtractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
         int flags = isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0;
         mBufferInfo.set(0, sampleSize, mExtractor.getSampleTime(), flags);
@@ -91,7 +106,11 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
 
     @Override
     public boolean isFinished() {
-        return mIsEOS;
+        return mIsEOS || mIsTrimEOS;
+    }
+
+    private boolean isPastTrimEndTime(long sampleTime) {
+        return mMediaTrimTime != null && mMediaTrimTime.endTimeInUs > 0 && sampleTime > mMediaTrimTime.endTimeInUs;
     }
 
     @Override

@@ -32,6 +32,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private static final int DRAIN_STATE_CONSUMED = 2;
 
     private final MediaExtractor mExtractor;
+    private final MediaTrimTime mMediaTrimTime;
     private final int mTrackIndex;
     private final MediaFormat mOutputFormat;
     private final QueuedMuxer mMuxer;
@@ -44,6 +45,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private OutputSurface mDecoderOutputSurfaceWrapper;
     private InputSurface mEncoderInputSurfaceWrapper;
     private boolean mIsExtractorEOS;
+    private boolean mIsTrimEOS;
     private boolean mIsDecoderEOS;
     private boolean mIsEncoderEOS;
     private boolean mDecoderStarted;
@@ -51,11 +53,12 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private long mWrittenPresentationTimeUs;
 
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
-                                MediaFormat outputFormat, QueuedMuxer muxer) {
+                                MediaFormat outputFormat, QueuedMuxer muxer, MediaTrimTime mediaTrimTime) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
+        mMediaTrimTime = mediaTrimTime;
     }
 
     @Override
@@ -120,7 +123,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
 
     @Override
     public boolean isFinished() {
-        return mIsEncoderEOS;
+        return mIsEncoderEOS || mIsTrimEOS;
     }
 
     // TODO: CloseGuard
@@ -159,7 +162,17 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
         }
+        if (mIsTrimEOS) {
+            mExtractor.advance();
+            return DRAIN_STATE_NONE;
+        }
         int sampleSize = mExtractor.readSampleData(mDecoderInputBuffers[result], 0);
+        if (isPastTrimEndTime(mExtractor.getSampleTime())){
+            mIsTrimEOS = true;
+            mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+            mExtractor.advance();
+            return DRAIN_STATE_NONE;
+        }
         boolean isKeyFrame = (mExtractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
         mDecoder.queueInputBuffer(result, 0, sampleSize, mExtractor.getSampleTime(), isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0);
         mExtractor.advance();
@@ -227,5 +240,9 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);
         return DRAIN_STATE_CONSUMED;
+    }
+
+    private boolean isPastTrimEndTime(long sampleTime) {
+        return mMediaTrimTime != null && mMediaTrimTime.endTimeInUs > 0 && sampleTime > mMediaTrimTime.endTimeInUs;
     }
 }
