@@ -73,7 +73,7 @@ Use [qtfaststart-java](https://github.com/ypresto/qtfaststart-java) to place moo
 ## License
 
 ```
-Copyright (C) 2015 Yuya Tanaka
+Copyright (C) 2014-2015 Yuya Tanaka
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
