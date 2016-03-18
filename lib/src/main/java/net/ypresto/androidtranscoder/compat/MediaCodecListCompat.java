@@ -24,7 +24,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
- * This class emulates basic behavior of MediaCodecList in API level >= 21.
+ * This class emulates basic behavior of MediaCodecList in API level &gt;= 21.
  * TODO: implement delegate to MediaCodecList in newer API.
  */
 public class MediaCodecListCompat {

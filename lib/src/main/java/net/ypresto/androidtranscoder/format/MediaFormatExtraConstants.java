@@ -36,7 +36,7 @@ public class MediaFormatExtraConstants {
     /**
      * For decoder parameter and included in MediaFormat from {@link android.media.MediaExtractor#getTrackFormat(int)}.
      * Decoder rotates specified degrees before rendering video to surface.
-     * NOTE: Only included in track format of API >= 21.
+     * NOTE: Only included in track format of API &gt;= 21.
      */
     public static final String KEY_ROTATION_DEGREES = "rotation-degrees";
 
