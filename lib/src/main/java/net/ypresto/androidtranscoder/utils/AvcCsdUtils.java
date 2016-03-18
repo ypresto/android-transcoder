@@ -30,6 +30,9 @@ public class AvcCsdUtils {
     // Refer: http://www.cardinalpeak.com/blog/the-h-264-sequence-parameter-set/
     private static final byte AVC_SPS_NAL = 103; // 0<<7 + 3<<5 + 7<<0
 
+    /**
+     * @return ByteBuffer contains SPS without NAL header.
+     */
     public static ByteBuffer getSpsBuffer(MediaFormat format) {
         ByteBuffer sourceBuffer = format.getByteBuffer(MediaFormatExtraConstants.KEY_AVC_SPS).asReadOnlyBuffer(); // might be direct buffer
         ByteBuffer prefixedSpsBuffer = ByteBuffer.allocate(sourceBuffer.limit()).order(sourceBuffer.order());

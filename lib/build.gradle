@@ -38,8 +38,3 @@ publish {
     autoPublish = false
     dryRun = false
 }
-
-dependencies {
-    compile 'org.jcodec:jcodec:0.1.9'
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-}
