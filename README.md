@@ -46,10 +46,10 @@ repositories {
 dependencies {
 
     // snapshot version
-    compile 'com.github.jacek-marchwicki.android-transcoder:master-SNAPSHOT'
+    compile 'com.github.jacek-marchwicki:android-transcoder:master-SNAPSHOT'
 
     // or use specific version (look on releases tab)
-    compile 'com.github.jacek-marchwicki.android-transcoder:0.1.11'
+    compile 'com.github.jacek-marchwicki:android-transcoder:0.1.11'
 }
 ```
 
