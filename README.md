@@ -3,6 +3,8 @@ android-transcoder
 
 Hardware accelerated transcoder for Android, written in pure Java.
 
+[![Build Status](https://travis-ci.org/jacek-marchwicki/android-transcoder.svg?branch=master)](https://travis-ci.org/jacek-marchwicki/android-transcoder)
+
 ## Requirements
 
 API Level 18 (Android 4.3, JELLY_BEAN_MR2) or later.
