@@ -17,31 +17,16 @@ Please ensure checking Build.VERSION by your self.
 
 ## Usage
 
-```
-@Override
-protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-    ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(data.getData(), "r");
-    FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-    MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
-        @Override
-        public void onTranscodeProgress(double progress) {
-            ...
-        }
-
-        @Override
-        public void onTranscodeCompleted() {
-            startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
-            ...
-        }
-
-        @Override
-        public void onTranscodeFailed(Exception exception) {
-            ...
-        }
-    };
-    MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-            MediaFormatStrategyPresets.createAndroid720pStrategy(), listener); // or createAndroid720pStrategy([your bit rate here])
-}
+```java
+final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+final MediaTranscoderEngine engine = new MediaTranscoderEngine();
+engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
+    @Override
+    public void onProgress(final double progress) {
+    }
+});
+engine.setDataSource(fileDescriptor);
+engine.transcodeVideo(file.getAbsolutePath(), new Android720pFormatStrategy(Android720pFormatStrategy.DEFAULT_BITRATE, 480, 340));
 ```
 
 See `TranscoderActivity.java` in example directory for ready-made transcoder app.
