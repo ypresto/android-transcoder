@@ -21,7 +21,7 @@ import android.util.Log;
 
 public class Android16By9FormatStrategy implements MediaFormatStrategy {
     public static final int SCALE_720P = 5;
-    private static final String TAG = "Android16By9FormatStrategy";
+    private static final String TAG = "Android16By9Format";
     private final int mScale;
     private final int mBitrate;
 
