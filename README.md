@@ -74,6 +74,7 @@ Use [qtfaststart-java](https://github.com/ypresto/qtfaststart-java) to place moo
 
 ```
 Copyright (C) 2014-2015 Yuya Tanaka
+Copyright (C) 2016 Jacek Marchwicki <jacek.marchwicki@gmail.com>
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
