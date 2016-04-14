@@ -4,6 +4,7 @@ android-transcoder
 Hardware accelerated transcoder for Android, written in pure Java.
 
 [![Build Status](https://travis-ci.org/jacek-marchwicki/android-transcoder.svg?branch=master)](https://travis-ci.org/jacek-marchwicki/android-transcoder)
+[![Release](https://jitpack.io/v/jacek-marchwicki/android-transcoder.svg)](https://jitpack.io/#jacek-marchwicki/android-transcoder)
 
 ## Requirements
 
