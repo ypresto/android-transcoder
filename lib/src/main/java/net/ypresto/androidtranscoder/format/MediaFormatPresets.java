@@ -18,6 +18,8 @@ package net.ypresto.androidtranscoder.format;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 
+import java.util.Locale;
+
 // Refer for example: https://gist.github.com/wobbals/3990442
 // Refer for preferred parameters: https://developer.apple.com/library/ios/documentation/networkinginternet/conceptual/streamingmediaguide/UsingHTTPLiveStreaming/UsingHTTPLiveStreaming.html#//apple_ref/doc/uid/TP40008332-CH102-SW8
 // Refer for available keys: (ANDROID ROOT)/media/libstagefright/ACodec.cpp
@@ -55,7 +57,7 @@ public class MediaFormatPresets {
         int residue = LONGER_LENGTH_960x540 * shorterLength % longerLength;
         if (residue != 0) {
             double ambiguousShorter = (double) LONGER_LENGTH_960x540 * shorterLength / longerLength;
-            throw new OutputFormatUnavailableException(String.format(
+            throw new OutputFormatUnavailableException(String.format(Locale.US,
                     "Could not fit to integer, original: (%d, %d), scaled: (%d, %f)",
                     longerLength, shorterLength, LONGER_LENGTH_960x540, ambiguousShorter));
         }

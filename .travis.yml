@@ -1,0 +1,32 @@
+sudo: false
+language: android
+
+# https://github.com/travis-ci/travis-ci/issues/3695
+env:
+  global:
+      MALLOC_ARENA_MAX=2
+
+android:
+  components:
+    - tools
+    - platform-tools
+    - build-tools-23.0.2
+    - android-23
+    - extra-google-m2repository
+    - extra-android-m2repository
+
+addons:
+  apt_packages:
+    - pandoc
+
+script: ./gradlew build
+
+
+after_failure:
+  - pandoc example/build/reports/tests/release/index.html -t plain | sed -n '/^Failed tests/,/default-package/p'
+  - pandoc lib/build/reports/tests/release/index.html -t plain | sed -n '/^Failed tests/,/default-package/p'
+
+
+after_script:
+- for f in "example/build/outputs/lint-results*.html"; do pandoc $f -t plain; done
+- for f in "lib/build/outputs/lint-results*.html"; do pandoc $f -t plain; done
