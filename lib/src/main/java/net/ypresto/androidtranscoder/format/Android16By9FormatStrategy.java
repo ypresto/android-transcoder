@@ -19,7 +19,7 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.util.Log;
 
-class Android16By9FormatStrategy implements MediaFormatStrategy {
+public class Android16By9FormatStrategy implements MediaFormatStrategy {
     public static final int SCALE_720P = 5;
     private static final String TAG = "Android16By9FormatStrategy";
     private final int mScale;

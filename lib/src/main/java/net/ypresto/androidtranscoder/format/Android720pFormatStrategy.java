@@ -19,19 +19,28 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.util.Log;
 
-class Android720pFormatStrategy implements MediaFormatStrategy {
+public class Android720pFormatStrategy implements MediaFormatStrategy {
     private static final String TAG = "720pFormatStrategy";
-    private static final int LONGER_LENGTH = 1280;
-    private static final int SHORTER_LENGTH = 720;
-    private static final int DEFAULT_BITRATE = 8000 * 1000; // From Nexus 4 Camera in 720p
+    public static final int LONGER_LENGTH = 1280;
+    public static final int SHORTER_LENGTH = 720;
+    public static final int DEFAULT_BITRATE = 8000 * 1000; // From Nexus 4 Camera in 720p
     private final int mBitRate;
+    private final int mLongerLength;
+    private final int mShorterLength;
+    private final String mVideoFormat = MediaFormatExtraConstants.MIMETYPE_VIDEO_AVC;
 
     public Android720pFormatStrategy() {
-        mBitRate = DEFAULT_BITRATE;
+        this(DEFAULT_BITRATE);
     }
 
     public Android720pFormatStrategy(int bitRate) {
+        this(bitRate, LONGER_LENGTH, SHORTER_LENGTH);
+    }
+
+    public Android720pFormatStrategy(int bitRate, int longerLength, int shorterLength) {
         mBitRate = bitRate;
+        mLongerLength = longerLength;
+        mShorterLength = shorterLength;
     }
 
     @Override
@@ -42,22 +51,22 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
         if (width >= height) {
             longer = width;
             shorter = height;
-            outWidth = LONGER_LENGTH;
-            outHeight = SHORTER_LENGTH;
+            outWidth = mLongerLength;
+            outHeight = mShorterLength;
         } else {
             shorter = width;
             longer = height;
-            outWidth = SHORTER_LENGTH;
-            outHeight = LONGER_LENGTH;
+            outWidth = mShorterLength;
+            outHeight = mLongerLength;
         }
         if (longer * 9 != shorter * 16) {
             throw new OutputFormatUnavailableException("This video is not 16:9, and is not able to transcode. (" + width + "x" + height + ")");
         }
-        if (shorter <= SHORTER_LENGTH) {
+        if (shorter <= mShorterLength && longer < mLongerLength) {
             Log.d(TAG, "This video is less or equal to 720p, pass-through. (" + width + "x" + height + ")");
             return null;
         }
-        MediaFormat format = MediaFormat.createVideoFormat("video/avc", outWidth, outHeight);
+        MediaFormat format = MediaFormat.createVideoFormat(mVideoFormat, outWidth, outHeight);
         // From Nexus 4 Camera in 720p
         format.setInteger(MediaFormat.KEY_BIT_RATE, mBitRate);
         format.setInteger(MediaFormat.KEY_FRAME_RATE, 30);

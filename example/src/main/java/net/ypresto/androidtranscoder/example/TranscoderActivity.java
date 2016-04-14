@@ -5,8 +5,8 @@ import android.content.ContentResolver;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.ParcelFileDescriptor;
-import android.os.SystemClock;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -14,21 +14,20 @@ import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import net.ypresto.androidtranscoder.MediaTranscoder;
-import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
+import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
+import net.ypresto.androidtranscoder.format.Android720pFormatStrategy;
 
 import java.io.File;
 import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 
 public class TranscoderActivity extends Activity {
     private static final String TAG = "TranscoderActivity";
     private static final int REQUEST_CODE_PICK = 1;
     private static final int PROGRESS_BAR_MAX = 1000;
-    private Future<Void> mFuture;
+    private final Handler handler = new Handler();
+    private Thread thread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,69 +42,20 @@ public class TranscoderActivity extends Activity {
         findViewById(R.id.cancel_button).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                mFuture.cancel(true);
+                if (thread != null) {
+                    thread.interrupt();
+                }
             }
         });
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         switch (requestCode) {
             case REQUEST_CODE_PICK: {
-                final File file;
                 if (resultCode == RESULT_OK) {
-                    try {
-                        file = File.createTempFile("transcode_test", ".mp4", getExternalFilesDir(null));
-                    } catch (IOException e) {
-                        Log.e(TAG, "Failed to create temporary file.", e);
-                        Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    ContentResolver resolver = getContentResolver();
-                    final ParcelFileDescriptor parcelFileDescriptor;
-                    try {
-                        parcelFileDescriptor = resolver.openFileDescriptor(data.getData(), "r");
-                    } catch (FileNotFoundException e) {
-                        Log.w("Could not open '" + data.getDataString() + "'", e);
-                        Toast.makeText(TranscoderActivity.this, "File not found.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-                    final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
-                    progressBar.setMax(PROGRESS_BAR_MAX);
-                    final long startTime = SystemClock.uptimeMillis();
-                    MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
-                        @Override
-                        public void onTranscodeProgress(double progress) {
-                            if (progress < 0) {
-                                progressBar.setIndeterminate(true);
-                            } else {
-                                progressBar.setIndeterminate(false);
-                                progressBar.setProgress((int) Math.round(progress * PROGRESS_BAR_MAX));
-                            }
-                        }
 
-                        @Override
-                        public void onTranscodeCompleted() {
-                            Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                            onTranscodeFinished(true, "transcoded file placed on " + file, parcelFileDescriptor);
-                            startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
-                        }
-
-                        @Override
-                        public void onTranscodeCanceled() {
-                            onTranscodeFinished(false, "Transcoder canceled.", parcelFileDescriptor);
-                        }
-
-                        @Override
-                        public void onTranscodeFailed(Exception exception) {
-                            onTranscodeFinished(false, "Transcoder error occurred.", parcelFileDescriptor);
-                        }
-                    };
-                    Log.d(TAG, "transcoding into " + file);
-                    mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-                            MediaFormatStrategyPresets.createAndroid720pStrategy(), listener);
-                    switchButtonEnabled(true);
+                    transcode(data);
                 }
                 break;
             }
@@ -114,36 +64,81 @@ public class TranscoderActivity extends Activity {
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.transcoder, menu);
-        return true;
+    private void transcode(final Intent data) {
+        switchButtonEnabled(true);
+
+        thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final File file = File.createTempFile("transcode_test", ".mp4", getExternalFilesDir(null));
+                    final ContentResolver resolver = getContentResolver();
+                    final ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(data.getData(), "r");
+                    if (parcelFileDescriptor == null) {
+                        throw new IOException("Could not read parcel file");
+                    }
+                    try {
+                        final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                        final MediaTranscoderEngine engine = new MediaTranscoderEngine();
+                        engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
+                            @Override
+                            public void onProgress(final double progress) {
+                                handler.post(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
+                                        if (progress < 0) {
+                                            progressBar.setIndeterminate(true);
+                                        } else {
+                                            progressBar.setIndeterminate(false);
+                                            progressBar.setProgress((int) Math.round(progress * PROGRESS_BAR_MAX));
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                        engine.setDataSource(fileDescriptor);
+                        engine.transcodeVideo(file.getAbsolutePath(), new Android720pFormatStrategy(Android720pFormatStrategy.DEFAULT_BITRATE / 4, 480, 340));
+                    } finally {
+                        parcelFileDescriptor.close();
+                    }
+
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            onTranscodeFinished(true, "Transcoded video");
+                            startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
+                        }
+                    });
+
+                } catch (IOException e) {
+                    showError(e);
+                } catch (InterruptedException e) {
+                    showError(e);
+                } catch (RuntimeException e) {
+                    showError(e);
+                }
+            }
+
+            private void showError(final Throwable e) {
+                Log.e(TAG, "Failed to transcode video.", e);
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        onTranscodeFinished(false, "Faild transcode" + e.getMessage());
+                    }
+                });
+            }
+        });
+        thread.start();
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    private void onTranscodeFinished(boolean isSuccess, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
+    private void onTranscodeFinished(boolean isSuccess, String toastMessage) {
         final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
         progressBar.setIndeterminate(false);
         progressBar.setProgress(isSuccess ? PROGRESS_BAR_MAX : 0);
         switchButtonEnabled(false);
         Toast.makeText(TranscoderActivity.this, toastMessage, Toast.LENGTH_LONG).show();
-        try {
-            parcelFileDescriptor.close();
-        } catch (IOException e) {
-            Log.w("Error while closing", e);
-        }
     }
 
     private void switchButtonEnabled(boolean isProgress) {
