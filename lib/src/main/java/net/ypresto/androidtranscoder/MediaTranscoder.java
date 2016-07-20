@@ -123,20 +123,20 @@ public class MediaTranscoder {
 
             @Override
             public void onTranscodeCompleted() {
-                listener.onTranscodeCompleted();
                 closeStream();
+                listener.onTranscodeCompleted();
             }
 
             @Override
             public void onTranscodeCanceled() {
-                listener.onTranscodeCanceled();
                 closeStream();
+                listener.onTranscodeCanceled();
             }
 
             @Override
             public void onTranscodeFailed(Exception exception) {
-                listener.onTranscodeFailed(exception);
                 closeStream();
+                listener.onTranscodeFailed(exception);
             }
 
             private void closeStream() {
