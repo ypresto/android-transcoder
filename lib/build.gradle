@@ -11,12 +11,12 @@ apply plugin: 'com.android.library'
 apply plugin: 'bintray-release'
 
 android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.2"
+    compileSdkVersion 24
+    buildToolsVersion "24.0.1"
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 21
+        targetSdkVersion 24
     }
 
     buildTypes {
