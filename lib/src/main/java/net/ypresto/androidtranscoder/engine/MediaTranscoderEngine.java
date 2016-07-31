@@ -44,6 +44,7 @@ public class MediaTranscoderEngine {
     private volatile double mProgress;
     private ProgressCallback mProgressCallback;
     private long mDurationUs;
+    private MediaTrimTime mMediaTrimTime;
 
     /**
      * Do not use this constructor unless you know what you are doing.
@@ -81,6 +82,21 @@ public class MediaTranscoderEngine {
      * @throws InterruptedException         when cancel to transcode.
      */
     public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
+        transcodeVideo(outputPath, formatStrategy, null);
+    }
+
+    /**
+     * Run video transcoding. Blocks current thread.
+     * Audio data will not be transcoded; original stream will be wrote to output file.
+     *
+     * @param outputPath     File path to output transcoded video file.
+     * @param formatStrategy Output format strategy.
+     * @param mediaTrimTime Media trim time.
+     * @throws IOException                  when input or output file could not be opened.
+     * @throws InvalidOutputFormatException when output format is not supported.
+     * @throws InterruptedException         when cancel to transcode.
+     */
+    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy, MediaTrimTime mediaTrimTime) throws IOException, InterruptedException {
         if (outputPath == null) {
             throw new NullPointerException("Output path cannot be null.");
         }
@@ -92,6 +108,7 @@ public class MediaTranscoderEngine {
             mExtractor = new MediaExtractor();
             mExtractor.setDataSource(mInputFileDescriptor);
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            mMediaTrimTime = mediaTrimTime;
             setupMetadata();
             setupTrackTranscoders(formatStrategy);
             runPipelines();
@@ -146,6 +163,14 @@ public class MediaTranscoderEngine {
         } catch (NumberFormatException e) {
             mDurationUs = -1;
         }
+
+        if (mMediaTrimTime != null && mMediaTrimTime.endTimeInUs > 0 &&  mMediaTrimTime.endTimeInUs < mDurationUs) {
+            mDurationUs = mMediaTrimTime.endTimeInUs;
+        }
+
+        if (mMediaTrimTime != null && mMediaTrimTime.startTimeInUs > 0 && mMediaTrimTime.startTimeInUs < mDurationUs ) {
+            mDurationUs -= mMediaTrimTime.startTimeInUs;
+        }
         Log.d(TAG, "Duration (us): " + mDurationUs);
     }
 
@@ -165,19 +190,23 @@ public class MediaTranscoderEngine {
         });
 
         if (videoOutputFormat == null) {
-            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO, mMediaTrimTime);
         } else {
-            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer);
+            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer, mMediaTrimTime);
         }
         mVideoTrackTranscoder.setup();
         if (audioOutputFormat == null) {
-            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO, mMediaTrimTime);
         } else {
             mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
         }
         mAudioTrackTranscoder.setup();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);
         mExtractor.selectTrack(trackResult.mAudioTrackIndex);
+
+        if (mMediaTrimTime != null && mMediaTrimTime.startTimeInUs > 0) {
+            mExtractor.seekTo(mMediaTrimTime.startTimeInUs, MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+        }
     }
 
     private void runPipelines() {
