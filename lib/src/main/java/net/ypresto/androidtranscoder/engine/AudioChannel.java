@@ -4,7 +4,6 @@ import android.media.MediaCodec;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
-import net.ypresto.androidtranscoder.utils.AudioConversionUtils;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -43,7 +42,7 @@ class AudioChannel {
     private int mInputChannelCount;
     private int mOutputChannelCount;
 
-    private AudioConversionUtils.Remixer mRemixer;
+    private AudioRemixer mRemixer;
 
     private final MediaCodecBufferCompatWrapper mDecoderBuffers;
     private final MediaCodecBufferCompatWrapper mEncoderBuffers;
@@ -83,11 +82,11 @@ class AudioChannel {
         }
 
         if (mInputChannelCount > mOutputChannelCount) {
-            mRemixer = AudioConversionUtils.REMIXER_DOWNMIX;
+            mRemixer = AudioRemixer.DOWNMIX;
         } else if (mInputChannelCount < mOutputChannelCount) {
-            mRemixer = AudioConversionUtils.REMIXER_UPMIX;
+            mRemixer = AudioRemixer.UPMIX;
         } else {
-            mRemixer = AudioConversionUtils.REMIXER_PASSTHROUGH;
+            mRemixer = AudioRemixer.PASSTHROUGH;
         }
 
         mOverflowBuffer.presentationTimeUs = 0;

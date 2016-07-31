@@ -1,14 +1,11 @@
-package net.ypresto.androidtranscoder.utils;
+package net.ypresto.androidtranscoder.engine;
 
 import java.nio.ShortBuffer;
 
-public class AudioConversionUtils {
+public interface AudioRemixer {
+    void remix(final ShortBuffer inSBuff, final ShortBuffer outSBuff);
 
-    public interface Remixer {
-        void remix(final ShortBuffer inSBuff, final ShortBuffer outSBuff);
-    }
-
-    public static final Remixer REMIXER_DOWNMIX = new Remixer() {
+    AudioRemixer DOWNMIX = new AudioRemixer() {
         private static final int SIGNED_SHORT_LIMIT = 32768;
         private static final int UNSIGNED_SHORT_MAX = 65535;
 
@@ -43,7 +40,7 @@ public class AudioConversionUtils {
         }
     };
 
-    public static final Remixer REMIXER_UPMIX = new Remixer() {
+    AudioRemixer UPMIX = new AudioRemixer() {
         @Override
         public void remix(final ShortBuffer inSBuff, final ShortBuffer outSBuff) {
             // Up-mix mono to stereo
@@ -59,7 +56,7 @@ public class AudioConversionUtils {
         }
     };
 
-    public static final Remixer REMIXER_PASSTHROUGH = new Remixer() {
+    AudioRemixer PASSTHROUGH = new AudioRemixer() {
         @Override
         public void remix(final ShortBuffer inSBuff, final ShortBuffer outSBuff) {
             // Passthrough
