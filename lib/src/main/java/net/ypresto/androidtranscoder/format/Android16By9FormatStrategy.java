@@ -20,6 +20,8 @@ import android.media.MediaFormat;
 import android.util.Log;
 
 class Android16By9FormatStrategy implements MediaFormatStrategy {
+    public static final int AUDIO_BITRATE_AS_IS = -1;
+    public static final int AUDIO_CHANNELS_AS_IS = -1;
     public static final int SCALE_720P = 5;
     private static final String TAG = "Android16By9FormatStrategy";
     private final int mScale;
@@ -28,7 +30,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
     private final int mAudioChannels;
 
     public Android16By9FormatStrategy(int scale, int videoBitrate) {
-        this(scale, videoBitrate, 0, 0);
+        this(scale, videoBitrate, AUDIO_BITRATE_AS_IS, AUDIO_CHANNELS_AS_IS);
     }
 
     public Android16By9FormatStrategy(int scale, int videoBitrate, int audioBitrate, int audioChannels) {
@@ -74,7 +76,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
 
     @Override
     public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
-        if (mAudioBitrate == 0 || mAudioChannels == 0) return null;
+        if (mAudioBitrate == AUDIO_BITRATE_AS_IS || mAudioChannels == AUDIO_CHANNELS_AS_IS) return null;
 
         // Use original sample rate, as resampling is not supported yet.
         final MediaFormat format = MediaFormat.createAudioFormat(MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC,

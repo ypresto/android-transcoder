@@ -48,7 +48,7 @@ protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         }
     };
     MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
-            MediaFormatStrategyPresets.createAndroid720pStrategy(), listener); // or createAndroid720pStrategy([your bit rate here])
+            MediaFormatStrategyPresets.createAndroid720pStrategy(), listener); // or createAndroid720pStrategy([your bitrate here])
 }
 ```
 
