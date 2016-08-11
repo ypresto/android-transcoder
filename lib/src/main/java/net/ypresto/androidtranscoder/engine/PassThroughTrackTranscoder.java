@@ -42,10 +42,19 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         mMuxer = muxer;
         mSampleType = sampleType;
 
-        mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
-        mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
-        mBufferSize = mActualOutputFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
-        mBuffer = ByteBuffer.allocateDirect(mBufferSize).order(ByteOrder.nativeOrder());
+        if (trackIndex >= 0) {
+            mActualOutputFormat = mExtractor.getTrackFormat(mTrackIndex);
+            mMuxer.setOutputFormat(mSampleType, mActualOutputFormat);
+            mBufferSize = mActualOutputFormat.getInteger(MediaFormat.KEY_MAX_INPUT_SIZE);
+            mBuffer = ByteBuffer.allocateDirect(mBufferSize).order(ByteOrder.nativeOrder());
+        } else {
+            // track has no audio. Passthrough should also exclude the track.
+            mMuxer.setOutputFormat(mSampleType, null);
+
+            // Nothing to do. EOS and report it took us 0 ms.
+            mIsEOS = true;
+            mWrittenPresentationTimeUs = 0;
+        }
     }
 
     @Override
