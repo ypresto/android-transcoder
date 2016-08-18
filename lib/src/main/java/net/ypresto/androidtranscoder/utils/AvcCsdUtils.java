@@ -30,7 +30,8 @@ public class AvcCsdUtils {
     // Refer: http://www.cardinalpeak.com/blog/the-h-264-sequence-parameter-set/
     private static final byte AVC_SPS_NAL = 103; // 0<<7 + 3<<5 + 7<<0
     // https://tools.ietf.org/html/rfc6184
-    private static final byte AVC2_SPS_NAL = 39; // 0<<7 + 1<<5 + 7<<0
+    private static final byte AVC_SPS_NAL_2 = 39; // 0<<7 + 1<<5 + 7<<0
+    private static final byte AVC_SPS_NAL_3 = 71; // 0<<7 + 2<<5 + 7<<0
 
     /**
      * @return ByteBuffer contains SPS without NAL header.
@@ -44,7 +45,7 @@ public class AvcCsdUtils {
         skipStartCode(prefixedSpsBuffer);
 
         byte spsNalData = prefixedSpsBuffer.get();
-        if (spsNalData != AVC_SPS_NAL && spsNalData != AVC2_SPS_NAL) {
+        if (spsNalData != AVC_SPS_NAL && spsNalData != AVC_SPS_NAL_2 && spsNalData != AVC_SPS_NAL_3) {
             throw new IllegalStateException("Got non SPS NAL data.");
         }
 
