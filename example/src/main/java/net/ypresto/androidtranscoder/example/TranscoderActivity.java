@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
+import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 
 public class TranscoderActivity extends Activity {
     private static final String TAG = "TranscoderActivity";
+    private static final String FILE_PROVIDER_AUTHORITY = "net.ypresto.androidtranscoder.example.fileprovider";
     private static final int REQUEST_CODE_PICK = 1;
     private static final int PROGRESS_BAR_MAX = 1000;
     private Future<Void> mFuture;
@@ -55,7 +57,10 @@ public class TranscoderActivity extends Activity {
                 final File file;
                 if (resultCode == RESULT_OK) {
                     try {
-                        file = File.createTempFile("transcode_test", ".mp4", getExternalFilesDir(null));
+                        File outputDir = new File(getExternalFilesDir(null), "outputs");
+                        //noinspection ResultOfMethodCallIgnored
+                        outputDir.mkdir();
+                        file = File.createTempFile("transcode_test", ".mp4", outputDir);
                     } catch (IOException e) {
                         Log.e(TAG, "Failed to create temporary file.", e);
                         Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
@@ -89,7 +94,10 @@ public class TranscoderActivity extends Activity {
                         public void onTranscodeCompleted() {
                             Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
                             onTranscodeFinished(true, "transcoded file placed on " + file, parcelFileDescriptor);
-                            startActivity(new Intent(Intent.ACTION_VIEW).setDataAndType(Uri.fromFile(file), "video/mp4"));
+                            Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
+                            startActivity(new Intent(Intent.ACTION_VIEW)
+                                    .setDataAndType(uri, "video/mp4")
+                                    .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
                         }
 
                         @Override
