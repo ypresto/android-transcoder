@@ -78,6 +78,20 @@ Use [qtfaststart-java](https://github.com/ypresto/qtfaststart-java) to place moo
 - Android does not gurantees that all devices have bug-free codecs/accelerators for your codec parameters (especially, resolution). Refer [supported media formats](http://developer.android.com/guide/appendix/media-formats.html) for parameters guaranteed by [CTS](https://source.android.com/compatibility/cts-intro.html).
 - This library does not support video files recorded by other device like digital cameras, iOS (mov files, including non-baseline profile h.264), etc.
 
+
+## More information about internals
+
+There is a blog post about this library written in Japanese.
+http://qiita.com/yuya_presto/items/d48e29c89109b746d000
+
+While it is Japanese, diagrams would be useful for understanding internals of this library.
+
+## References for Android Low-Level Media APIs
+
+- http://bigflake.com/mediacodec/
+- https://github.com/google/grafika
+- https://android.googlesource.com/platform/frameworks/av/+/lollipop-release/media/libstagefright
+
 ## License
 
 ```
@@ -95,9 +109,3 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ```
-
-## References for Android Low-Level Media APIs
-
-- http://bigflake.com/mediacodec/
-- https://github.com/google/grafika
-- https://android.googlesource.com/platform/frameworks/av/+/lollipop-release/media/libstagefright
