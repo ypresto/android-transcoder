@@ -67,7 +67,7 @@ repositories {
 ```
 
 ```groovy
-compile 'net.ypresto.androidtranscoder:android-transcoder:0.1.10'
+compile 'net.ypresto.androidtranscoder:android-transcoder:0.2.0'
 ```
 
 ## Note (PLEASE READ FIRST)

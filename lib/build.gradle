@@ -32,7 +32,7 @@ android {
 publish {
     groupId = 'net.ypresto.androidtranscoder'
     artifactId = 'android-transcoder'
-    version = '0.1.10-SNAPSHOT'
+    version = '0.2.0'
     licences = ['Apache-2.0']
     website = 'https://github.com/ypresto/android-transcoder'
     autoPublish = false
