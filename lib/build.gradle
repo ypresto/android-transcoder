@@ -1,22 +1,22 @@
-//buildscript {
-//    repositories {
-//        jcenter()
-//    }
-//    dependencies {
-//        classpath 'com.novoda:bintray-release:0.2.4'
-//    }
-//}
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.novoda:bintray-release:0.2.4'
+    }
+}
 
 apply plugin: 'com.android.library'
-//apply plugin: 'bintray-release'
+apply plugin: 'bintray-release'
 
 android {
-    compileSdkVersion 27
-    buildToolsVersion '27.0.2'
+    compileSdkVersion 24
+    buildToolsVersion '25.0.2'
 
     defaultConfig {
         minSdkVersion 18
-        targetSdkVersion 27
+        targetSdkVersion 24
     }
 
     buildTypes {
@@ -29,12 +29,12 @@ android {
     }
 }
 
-//publish {
-//    groupId = 'net.ypresto.androidtranscoder'
-//    artifactId = 'android-transcoder'
-//    version = '0.2.0'
-//    licences = ['Apache-2.0']
-//    website = 'https://github.com/ypresto/android-transcoder'
-//    autoPublish = false
-//    dryRun = false
-//}
+publish {
+    groupId = 'net.ypresto.androidtranscoder'
+    artifactId = 'android-transcoder'
+    version = '0.2.0'
+    licences = ['Apache-2.0']
+    website = 'https://github.com/ypresto/android-transcoder'
+    autoPublish = false
+    dryRun = false
+}
