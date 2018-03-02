@@ -177,12 +177,14 @@ class AudioChannel {
                 sampleCountToDurationUs(overflowBuff.position(), mInputSampleRate, mOutputChannelCount);
 
         outBuff.clear();
-        // Limit overflowBuff to outBuff's capacity
-        overflowBuff.limit(outBuff.capacity());
+        if (overflowSize > outBuff.capacity()) {
+            // Limit overflowBuff to outBuff's capacity
+            overflowBuff.limit(outBuff.capacity());
+        }
         // Load overflowBuff onto outBuff
         outBuff.put(overflowBuff);
 
-        if (overflowSize >= outBuff.capacity()) {
+        if (overflowSize < outBuff.capacity()) {
             // Overflow fully consumed - Reset
             overflowBuff.clear().limit(0);
         } else {
@@ -216,6 +218,7 @@ class AudioChannel {
             // NOTE: We should only reach this point when overflow buffer is empty
             final long consumedDurationUs =
                     sampleCountToDurationUs(inBuff.position(), mInputSampleRate, mInputChannelCount);
+            overflowBuff.clear();
             mRemixer.remix(inBuff, overflowBuff);
 
             // Seal off overflowBuff & mark limit
