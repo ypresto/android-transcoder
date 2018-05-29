@@ -43,8 +43,8 @@ class MediaFormatValidator {
 
     public static void validateAudioOutputFormat(MediaFormat format) {
         String mime = format.getString(MediaFormat.KEY_MIME);
-        if (!MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC.equals(mime)) {
-            throw new InvalidOutputFormatException("Audio codecs other than AAC is not supported, actual mime type: " + mime);
+        if (!MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC.equals(mime) && !MediaFormatExtraConstants.MIMETYPE_AUDIO_AMR.equals(mime)) {
+            throw new InvalidOutputFormatException("Audio codecs other than AAC/AMR is not supported, actual mime type: " + mime);
         }
     }
 }
