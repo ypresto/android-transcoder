@@ -49,6 +49,7 @@ public class MediaFormatExtraConstants {
     // Audio formats
     // from MediaFormat of API level >= 21
     public static final String MIMETYPE_AUDIO_AAC = "audio/mp4a-latm";
+    public static final String MIMETYPE_AUDIO_AMR = "audio/3gpp";
 
     private MediaFormatExtraConstants() {
         throw new RuntimeException();
