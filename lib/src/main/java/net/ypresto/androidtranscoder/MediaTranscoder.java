@@ -40,6 +40,7 @@ public class MediaTranscoder {
     private static final int MAXIMUM_THREAD = 1; // TODO
     private static volatile MediaTranscoder sMediaTranscoder;
     private ThreadPoolExecutor mExecutor;
+    private final AtomicReference<Future<Void>> futureReference = new AtomicReference<>();
 
     private MediaTranscoder() {
         mExecutor = new ThreadPoolExecutor(
@@ -162,7 +163,6 @@ public class MediaTranscoder {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
-        final AtomicReference<Future<Void>> futureReference = new AtomicReference<>();
         final Future<Void> createdFuture = mExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
@@ -217,6 +217,22 @@ public class MediaTranscoder {
         });
         futureReference.set(createdFuture);
         return createdFuture;
+    }
+
+    /**
+     * Cancels the ongoing Trascoding by calling
+     * cancel on Future<T> object returned by
+     * mExecutor.submit()
+     *
+     * @nieldeokar
+     */
+    public void cancelTranscoding(){
+
+        Future<Void> current = futureReference.get();
+        if(current != null){
+            current.cancel(true);
+            Log.e(TAG, "Cancelled Future "+current.isCancelled());
+        }
     }
 
     public interface Listener {
