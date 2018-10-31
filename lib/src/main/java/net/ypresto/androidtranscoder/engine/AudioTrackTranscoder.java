@@ -79,7 +79,7 @@ public class AudioTrackTranscoder implements TrackTranscoder {
 
     @Override
     public MediaFormat getDeterminedFormat() {
-        return mInputFormat;
+        return mActualOutputFormat;
     }
 
     @Override
