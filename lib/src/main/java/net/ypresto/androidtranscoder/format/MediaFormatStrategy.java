@@ -17,6 +17,9 @@ package net.ypresto.androidtranscoder.format;
 
 import android.media.MediaFormat;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 public interface MediaFormatStrategy {
 
     /**
@@ -26,7 +29,8 @@ public interface MediaFormatStrategy {
      * @return null for passthrough.
      * @throws OutputFormatUnavailableException if input could not be transcoded because of restrictions.
      */
-    public MediaFormat createVideoOutputFormat(MediaFormat inputFormat);
+    @Nullable
+    public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat);
 
     /**
      * Caution: this method should return null currently.
@@ -34,6 +38,7 @@ public interface MediaFormatStrategy {
      * @return null for passthrough.
      * @throws OutputFormatUnavailableException if input could not be transcoded because of restrictions.
      */
-    public MediaFormat createAudioOutputFormat(MediaFormat inputFormat);
+    @Nullable
+    public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat);
 
 }

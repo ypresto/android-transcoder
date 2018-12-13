@@ -21,6 +21,8 @@ import android.util.Log;
 
 import net.ypresto.androidtranscoder.utils.Logger;
 
+import androidx.annotation.NonNull;
+
 class Android720pFormatStrategy implements MediaFormatStrategy {
     private static final String TAG = "720pFormatStrategy";
     private static final Logger LOG = new Logger(TAG);
@@ -49,7 +51,7 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
     }
 
     @Override
-    public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
+    public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat) {
         int width = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
         int height = inputFormat.getInteger(MediaFormat.KEY_HEIGHT);
         int longer, shorter, outWidth, outHeight;
@@ -81,7 +83,7 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
     }
 
     @Override
-    public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
+    public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat) {
         if (mAudioBitrate == AUDIO_BITRATE_AS_IS || mAudioChannels == AUDIO_CHANNELS_AS_IS) return null;
 
         // Use original sample rate, as resampling is not supported yet.

@@ -21,6 +21,8 @@ import android.util.Log;
 
 import net.ypresto.androidtranscoder.utils.Logger;
 
+import androidx.annotation.NonNull;
+
 class Android16By9FormatStrategy implements MediaFormatStrategy {
     private static final String TAG = "Android16By9FormatStrategy";
     private static final Logger LOG = new Logger(TAG);
@@ -45,7 +47,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
     }
 
     @Override
-    public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
+    public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat) {
         int width = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
         int height = inputFormat.getInteger(MediaFormat.KEY_HEIGHT);
         int targetLonger = mScale * 16 * 16;
@@ -79,7 +81,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
     }
 
     @Override
-    public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
+    public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat) {
         if (mAudioBitrate == AUDIO_BITRATE_AS_IS || mAudioChannels == AUDIO_CHANNELS_AS_IS) return null;
 
         // Use original sample rate, as resampling is not supported yet.

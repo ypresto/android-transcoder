@@ -36,6 +36,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import androidx.annotation.NonNull;
+
 public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
     private static final Logger LOG = new Logger(TAG);
@@ -80,12 +82,12 @@ public class MediaTranscoder {
     public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
         return transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
             @Override
-            public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
+            public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat) {
                 return MediaFormatPresets.getExportPreset960x540();
             }
 
             @Override
-            public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
+            public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat) {
                 return null;
             }
         }, listener);
