@@ -24,12 +24,15 @@ import android.util.Log;
 
 import net.ypresto.androidtranscoder.BuildConfig;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
+import net.ypresto.androidtranscoder.source.DataSource;
 import net.ypresto.androidtranscoder.utils.ISO6709LocationParser;
 import net.ypresto.androidtranscoder.utils.Logger;
 import net.ypresto.androidtranscoder.utils.MediaExtractorUtils;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
+
+import androidx.annotation.NonNull;
 
 /**
  * Internal engine, do not use this directly.
@@ -42,7 +45,7 @@ public class MediaTranscoderEngine {
     private static final double PROGRESS_UNKNOWN = -1.0;
     private static final long SLEEP_TO_WAIT_TRACK_TRANSCODERS = 10;
     private static final long PROGRESS_INTERVAL_STEPS = 10;
-    private FileDescriptor mInputFileDescriptor;
+    private DataSource mDataSource;
     private TrackTranscoder mVideoTrackTranscoder;
     private TrackTranscoder mAudioTrackTranscoder;
     private MediaExtractor mExtractor;
@@ -57,8 +60,8 @@ public class MediaTranscoderEngine {
     public MediaTranscoderEngine() {
     }
 
-    public void setDataSource(FileDescriptor fileDescriptor) {
-        mInputFileDescriptor = fileDescriptor;
+    public void setDataSource(DataSource dataSource) {
+        mDataSource = dataSource;
     }
 
     public ProgressCallback getProgressCallback() {
@@ -86,17 +89,14 @@ public class MediaTranscoderEngine {
      * @throws InvalidOutputFormatException when output format is not supported.
      * @throws InterruptedException         when cancel to transcode.
      */
-    public void transcodeVideo(String outputPath, MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
-        if (outputPath == null) {
-            throw new NullPointerException("Output path cannot be null.");
-        }
-        if (mInputFileDescriptor == null) {
+    public void transcodeVideo(@NonNull String outputPath, @NonNull MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
+        if (mDataSource == null) {
             throw new IllegalStateException("Data source is not set.");
         }
         try {
             // NOTE: use single extractor to keep from running out audio track fast.
             mExtractor = new MediaExtractor();
-            mExtractor.setDataSource(mInputFileDescriptor);
+            mDataSource.apply(mExtractor);
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             setupMetadata();
             setupTrackTranscoders(formatStrategy);
@@ -134,7 +134,7 @@ public class MediaTranscoderEngine {
 
     private void setupMetadata() throws IOException {
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
-        mediaMetadataRetriever.setDataSource(mInputFileDescriptor);
+        mDataSource.apply(mediaMetadataRetriever);
 
         String rotationString = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
         try {

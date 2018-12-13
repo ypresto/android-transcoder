@@ -1,0 +1,59 @@
+package net.ypresto.androidtranscoder.source;
+
+import android.media.MediaExtractor;
+import android.media.MediaMetadataRetriever;
+
+import net.ypresto.androidtranscoder.utils.Logger;
+
+import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.IOException;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+/**
+ * A {@link DataSource} backed by a file absolute path.
+ */
+public class FilePathDataSource implements DataSource {
+    private static final String TAG = "FilePathDataSource";
+    private static final Logger LOG = new Logger(TAG);
+
+    @NonNull
+    private FileDescriptorDataSource descriptor;
+    @Nullable private FileInputStream stream;
+
+    public FilePathDataSource(@NonNull String path) {
+        FileDescriptor fileDescriptor;
+        try {
+            stream = new FileInputStream(path);
+            fileDescriptor = stream.getFD();
+        } catch (IOException e) {
+            release();
+            throw new RuntimeException(e);
+        }
+        descriptor = new FileDescriptorDataSource(fileDescriptor);
+    }
+
+    @Override
+    public void apply(MediaExtractor extractor) throws IOException {
+        descriptor.apply(extractor);
+    }
+
+    @Override
+    public void apply(MediaMetadataRetriever retriever) {
+        descriptor.apply(retriever);
+    }
+
+    @Override
+    public void release() {
+        descriptor.release();
+        if (stream != null) {
+            try {
+                stream.close();
+            } catch (IOException e) {
+                LOG.e("Can't close input stream: ", e);
+            }
+        }
+    }
+}
