@@ -20,5 +20,5 @@ android {
 
 dependencies {
     api project(':lib')
-    api "com.android.support:support-core-utils:${supportLibVersion}"
+    api "androidx.core:core:1.0.1"
 }
