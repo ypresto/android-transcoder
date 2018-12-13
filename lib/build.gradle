@@ -28,6 +28,10 @@ android {
     }
 }
 
+dependencies {
+    api 'com.android.support:support-annotations:28.0.0'
+}
+
 publish {
     userOrg = 'ypresto'
     groupId = 'net.ypresto.androidtranscoder'
