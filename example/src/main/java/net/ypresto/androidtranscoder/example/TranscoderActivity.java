@@ -76,7 +76,7 @@ public class TranscoderActivity extends Activity {
                         return;
                     }
                     final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
-                    final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
+                    final ProgressBar progressBar = findViewById(R.id.progress_bar);
                     progressBar.setMax(PROGRESS_BAR_MAX);
                     final long startTime = SystemClock.uptimeMillis();
                     MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
@@ -113,6 +113,7 @@ public class TranscoderActivity extends Activity {
                     Log.d(TAG, "transcoding into " + file);
                     mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
                             MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
+                            // MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
                     switchButtonEnabled(true);
                 }
                 break;
