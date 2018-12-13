@@ -25,6 +25,7 @@ import android.util.Log;
 import net.ypresto.androidtranscoder.BuildConfig;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import net.ypresto.androidtranscoder.utils.ISO6709LocationParser;
+import net.ypresto.androidtranscoder.utils.Logger;
 import net.ypresto.androidtranscoder.utils.MediaExtractorUtils;
 
 import java.io.FileDescriptor;
@@ -36,6 +37,8 @@ import java.io.IOException;
 // TODO: treat encrypted data
 public class MediaTranscoderEngine {
     private static final String TAG = "MediaTranscoderEngine";
+    private static final Logger LOG = new Logger(TAG);
+
     private static final double PROGRESS_UNKNOWN = -1.0;
     private static final long SLEEP_TO_WAIT_TRACK_TRANSCODERS = 10;
     private static final long PROGRESS_INTERVAL_STEPS = 10;
@@ -124,7 +127,7 @@ public class MediaTranscoderEngine {
                     mMuxer = null;
                 }
             } catch (RuntimeException e) {
-                Log.e(TAG, "Failed to release muxer.", e);
+                LOG.e("Failed to release muxer.", e);
             }
         }
     }
@@ -147,7 +150,7 @@ public class MediaTranscoderEngine {
                 if (location != null) {
                     mMuxer.setLocation(location[0], location[1]);
                 } else {
-                    Log.d(TAG, "Failed to parse the location metadata: " + locationString);
+                    LOG.v("Failed to parse the location metadata: " + locationString);
                 }
             }
         }
@@ -157,7 +160,7 @@ public class MediaTranscoderEngine {
         } catch (NumberFormatException e) {
             mDurationUs = -1;
         }
-        Log.d(TAG, "Duration (us): " + mDurationUs);
+        LOG.v("Duration (us): " + mDurationUs);
     }
 
     private void setupTrackTranscoders(MediaFormatStrategy formatStrategy) {

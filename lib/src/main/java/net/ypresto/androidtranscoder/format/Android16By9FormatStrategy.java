@@ -19,11 +19,15 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.util.Log;
 
+import net.ypresto.androidtranscoder.utils.Logger;
+
 class Android16By9FormatStrategy implements MediaFormatStrategy {
+    private static final String TAG = "Android16By9FormatStrategy";
+    private static final Logger LOG = new Logger(TAG);
+
     public static final int AUDIO_BITRATE_AS_IS = -1;
     public static final int AUDIO_CHANNELS_AS_IS = -1;
     public static final int SCALE_720P = 5;
-    private static final String TAG = "Android16By9FormatStrategy";
     private final int mScale;
     private final int mVideoBitrate;
     private final int mAudioBitrate;
@@ -62,7 +66,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
             throw new OutputFormatUnavailableException("This video is not 16:9, and is not able to transcode. (" + width + "x" + height + ")");
         }
         if (shorter <= targetShorter) {
-            Log.d(TAG, "This video's height is less or equal to " + targetShorter + ", pass-through. (" + width + "x" + height + ")");
+            LOG.i("This video's height is less or equal to " + targetShorter + ", pass-through. (" + width + "x" + height + ")");
             return null;
         }
         MediaFormat format = MediaFormat.createVideoFormat("video/avc", outWidth, outHeight);

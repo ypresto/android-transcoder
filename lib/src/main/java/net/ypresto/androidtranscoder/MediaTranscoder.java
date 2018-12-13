@@ -23,6 +23,7 @@ import android.util.Log;
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
 import net.ypresto.androidtranscoder.format.MediaFormatPresets;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
+import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -37,6 +38,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
+    private static final Logger LOG = new Logger(TAG);
+
     private static final int MAXIMUM_THREAD = 1; // TODO
     private static volatile MediaTranscoder sMediaTranscoder;
     private ThreadPoolExecutor mExecutor;
@@ -109,7 +112,7 @@ public class MediaTranscoder {
                 try {
                     fileInputStream.close();
                 } catch (IOException eClose) {
-                    Log.e(TAG, "Can't close input stream: ", eClose);
+                    LOG.e("Can't close input stream: ", eClose);
                 }
             }
             throw e;
@@ -143,7 +146,7 @@ public class MediaTranscoder {
                 try {
                     finalFileInputStream.close();
                 } catch (IOException e) {
-                    Log.e(TAG, "Can't close input stream: ", e);
+                    LOG.e("Can't close input stream: ", e);
                 }
             }
         });
@@ -183,14 +186,14 @@ public class MediaTranscoder {
                     engine.setDataSource(inFileDescriptor);
                     engine.transcodeVideo(outPath, outFormatStrategy);
                 } catch (IOException e) {
-                    Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
+                    LOG.w("Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
                             + " or could not open output file ('" + outPath + "') .", e);
                     caughtException = e;
                 } catch (InterruptedException e) {
-                    Log.i(TAG, "Cancel transcode video file.", e);
+                    LOG.i("Cancel transcode video file.", e);
                     caughtException = e;
                 } catch (RuntimeException e) {
-                    Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
+                    LOG.e("Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
                     caughtException = e;
                 }
 

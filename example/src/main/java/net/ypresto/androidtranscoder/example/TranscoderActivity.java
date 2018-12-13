@@ -17,6 +17,7 @@ import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
+import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -27,6 +28,8 @@ import java.util.concurrent.Future;
 
 public class TranscoderActivity extends Activity {
     private static final String TAG = "TranscoderActivity";
+    private static final Logger LOG = new Logger(TAG);
+
     private static final String FILE_PROVIDER_AUTHORITY = "net.ypresto.androidtranscoder.example.fileprovider";
     private static final int REQUEST_CODE_PICK = 1;
     private static final int PROGRESS_BAR_MAX = 1000;
@@ -35,6 +38,7 @@ public class TranscoderActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Logger.setLogLevel(Logger.LEVEL_VERBOSE);
         setContentView(R.layout.activity_transcoder);
         findViewById(R.id.select_video_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -62,7 +66,7 @@ public class TranscoderActivity extends Activity {
                         outputDir.mkdir();
                         file = File.createTempFile("transcode_test", ".mp4", outputDir);
                     } catch (IOException e) {
-                        Log.e(TAG, "Failed to create temporary file.", e);
+                        LOG.e("Failed to create temporary file.", e);
                         Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -71,7 +75,7 @@ public class TranscoderActivity extends Activity {
                     try {
                         parcelFileDescriptor = resolver.openFileDescriptor(data.getData(), "r");
                     } catch (FileNotFoundException e) {
-                        Log.w("Could not open '" + data.getDataString() + "'", e);
+                        LOG.w("Could not open '" + data.getDataString() + "'", e);
                         Toast.makeText(TranscoderActivity.this, "File not found.", Toast.LENGTH_LONG).show();
                         return;
                     }
@@ -92,7 +96,7 @@ public class TranscoderActivity extends Activity {
 
                         @Override
                         public void onTranscodeCompleted() {
-                            Log.d(TAG, "transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
+                            LOG.i("transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
                             onTranscodeFinished(true, "transcoded file placed on " + file, parcelFileDescriptor);
                             Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
                             startActivity(new Intent(Intent.ACTION_VIEW)
@@ -110,7 +114,7 @@ public class TranscoderActivity extends Activity {
                             onTranscodeFinished(false, "Transcoder error occurred.", parcelFileDescriptor);
                         }
                     };
-                    Log.d(TAG, "transcoding into " + file);
+                    LOG.i("transcoding into " + file);
                     mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
                             MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
                             // MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
@@ -151,7 +155,7 @@ public class TranscoderActivity extends Activity {
         try {
             parcelFileDescriptor.close();
         } catch (IOException e) {
-            Log.w("Error while closing", e);
+            LOG.w("Error while closing", e);
         }
     }
 

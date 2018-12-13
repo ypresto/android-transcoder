@@ -18,11 +18,17 @@ package net.ypresto.androidtranscoder.format;
 import android.media.MediaFormat;
 import android.util.Log;
 
+import net.ypresto.androidtranscoder.utils.Logger;
+
+import java.util.Locale;
+
 /**
 * Created by yuya.tanaka on 2014/11/20.
 */
 class ExportPreset960x540Strategy implements MediaFormatStrategy {
     private static final String TAG = "ExportPreset960x540Strategy";
+    private static final Logger LOG = new Logger(TAG);
+
 
     @Override
     public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
@@ -32,7 +38,8 @@ class ExportPreset960x540Strategy implements MediaFormatStrategy {
         MediaFormat outputFormat = MediaFormatPresets.getExportPreset960x540(width, height);
         int outWidth = outputFormat.getInteger(MediaFormat.KEY_WIDTH);
         int outHeight = outputFormat.getInteger(MediaFormat.KEY_HEIGHT);
-        Log.d(TAG, String.format("inputFormat: %dx%d => outputFormat: %dx%d", width, height, outWidth, outHeight));
+        LOG.v(String.format(Locale.getDefault(),
+                "inputFormat: %dx%d => outputFormat: %dx%d", width, height, outWidth, outHeight));
         return outputFormat;
     }
 

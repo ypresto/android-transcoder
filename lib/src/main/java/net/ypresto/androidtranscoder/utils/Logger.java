@@ -29,7 +29,7 @@ public class Logger {
 
     private String mTag;
 
-    Logger(String tag) {
+    public Logger(String tag) {
         mTag = tag;
     }
 
@@ -50,19 +50,27 @@ public class Logger {
         return sLevel <= messageLevel;
     }
 
-    void v(String message, @Nullable Throwable error) {
+    public void v(String message) { v(message, null); }
+
+    public void i(String message) { i(message, null); }
+
+    public void w(String message) { w(message, null); }
+
+    public void e(String message) { e(message, null); }
+
+    public void v(String message, @Nullable Throwable error) {
         log(LEVEL_VERBOSE, message, error);
     }
 
-    void i(String message, @Nullable Throwable error) {
+    public void i(String message, @Nullable Throwable error) {
         log(LEVEL_INFO, message, error);
     }
 
-    void w(String message, @Nullable Throwable error) {
+    public void w(String message, @Nullable Throwable error) {
         log(LEVEL_WARNING, message, error);
     }
 
-    void e(String message, @Nullable Throwable error) {
+    public void e(String message, @Nullable Throwable error) {
         log(LEVEL_ERROR, message, error);
     }
 
