@@ -1,12 +1,12 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 28
+    compileSdkVersion rootProject.ext.compileSdkVersion
 
     defaultConfig {
         applicationId "net.ypresto.androidtranscoder.example"
-        minSdkVersion 18
-        targetSdkVersion 28
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
     }
@@ -20,5 +20,5 @@ android {
 
 dependencies {
     api project(':lib')
-    api 'com.android.support:support-core-utils:28.0.0'
+    api "com.android.support:support-core-utils:${supportLibVersion}"
 }
