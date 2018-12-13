@@ -17,6 +17,8 @@ package net.ypresto.androidtranscoder.engine;
 
 import android.media.MediaFormat;
 
+import androidx.annotation.Nullable;
+
 public interface TrackTranscoder {
 
     void setup();
@@ -27,6 +29,7 @@ public interface TrackTranscoder {
      *
      * @return Actual output format determined by coder, or {@code null} if not yet determined.
      */
+    @Nullable
     MediaFormat getDeterminedFormat();
 
     /**

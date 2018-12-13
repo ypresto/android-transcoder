@@ -184,14 +184,18 @@ public class MediaTranscoderEngine {
             mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer);
         }
         mVideoTrackTranscoder.setup();
-        if (audioOutputFormat == null) {
+        if (!trackResult.hasAudio()) {
+            mAudioTrackTranscoder = new NoOpTrackTranscoder();
+        } else if (audioOutputFormat == null) {
             mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
         } else {
             mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
         }
         mAudioTrackTranscoder.setup();
         mExtractor.selectTrack(trackResult.mVideoTrackIndex);
-        mExtractor.selectTrack(trackResult.mAudioTrackIndex);
+        if (trackResult.hasAudio()) {
+            mExtractor.selectTrack(trackResult.mAudioTrackIndex);
+        }
     }
 
     private void runPipelines() throws InterruptedException {

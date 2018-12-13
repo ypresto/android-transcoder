@@ -203,7 +203,7 @@ public class MediaTranscoder {
          * @param exception Exception thrown from {@link MediaTranscoderEngine#transcodeVideo(String, MediaFormatStrategy)}.
          *                  Note that it IS NOT {@link java.lang.Throwable}. This means {@link java.lang.Error} won't be caught.
          */
-        void onTranscodeFailed(Exception exception);
+        void onTranscodeFailed(@NonNull Exception exception);
     }
 
     /**

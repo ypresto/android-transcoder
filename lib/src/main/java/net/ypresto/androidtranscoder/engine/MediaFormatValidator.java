@@ -23,11 +23,14 @@ import net.ypresto.androidtranscoder.utils.AvcSpsUtils;
 
 import java.nio.ByteBuffer;
 
+import androidx.annotation.Nullable;
+
 class MediaFormatValidator {
     // Refer: http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Profiles
     private static final byte PROFILE_IDC_BASELINE = 66;
 
-    public static void validateVideoOutputFormat(MediaFormat format) {
+    public static void validateVideoOutputFormat(@Nullable MediaFormat format) {
+        if (format == null) return;
         String mime = format.getString(MediaFormat.KEY_MIME);
         // Refer: http://developer.android.com/guide/appendix/media-formats.html#core
         // Refer: http://en.wikipedia.org/wiki/MPEG-4_Part_14#Data_streams
@@ -41,7 +44,8 @@ class MediaFormatValidator {
         }
     }
 
-    public static void validateAudioOutputFormat(MediaFormat format) {
+    public static void validateAudioOutputFormat(@Nullable MediaFormat format) {
+        if (format == null) return;
         String mime = format.getString(MediaFormat.KEY_MIME);
         if (!MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC.equals(mime)) {
             throw new InvalidOutputFormatException("Audio codecs other than AAC is not supported, actual mime type: " + mime);
