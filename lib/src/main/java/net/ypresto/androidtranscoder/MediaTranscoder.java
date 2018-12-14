@@ -15,21 +15,13 @@
  */
 package net.ypresto.androidtranscoder;
 
-import android.media.MediaFormat;
 import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
-import net.ypresto.androidtranscoder.format.MediaFormatPresets;
-import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import net.ypresto.androidtranscoder.source.DataSource;
-import net.ypresto.androidtranscoder.source.FileDescriptorDataSource;
-import net.ypresto.androidtranscoder.source.FilePathDataSource;
+import net.ypresto.androidtranscoder.strategy.OutputStrategy;
 import net.ypresto.androidtranscoder.utils.Logger;
 
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -96,67 +88,6 @@ public class MediaTranscoder {
     /**
      * Transcodes video file asynchronously.
      *
-     * @param inPath            File path for input.
-     * @param outPath           File path for output.
-     * @param outFormatStrategy Strategy for output video format.
-     * @param listener          Listener instance for callback.
-     *
-     * @deprecated get a builder using {@link #into(String)} and pass options to {@link #transcode(MediaTranscoderOptions)}.
-     */
-    @SuppressWarnings({"WeakerAccess", "SpellCheckingInspection"})
-    @Deprecated
-    public Future<Void> transcodeVideo(@NonNull final String inPath,
-                                       @NonNull final String outPath,
-                                       @NonNull final MediaFormatStrategy outFormatStrategy,
-                                       @NonNull final Listener listener) {
-        return transcodeVideo(new FilePathDataSource(inPath), outPath, outFormatStrategy, listener);
-    }
-
-    /**
-     * Transcodes video file asynchronously.
-     *
-     * @param inFileDescriptor  FileDescriptor for input.
-     * @param outPath           File path for output.
-     * @param outFormatStrategy Strategy for output video format.
-     * @param listener          Listener instance for callback.
-     *
-     * @deprecated get a builder using {@link #into(String)} and pass options to {@link #transcode(MediaTranscoderOptions)}.
-     */
-    @Deprecated
-    public Future<Void> transcodeVideo(@NonNull final FileDescriptor inFileDescriptor,
-                                       @NonNull final String outPath,
-                                       @NonNull final MediaFormatStrategy outFormatStrategy,
-                                       @NonNull final Listener listener) {
-        return transcodeVideo(new FileDescriptorDataSource(inFileDescriptor),
-                outPath, outFormatStrategy, listener);
-    }
-
-    /**
-     * Transcodes video file asynchronously.
-     *
-     * @param dataSource        The input data source.
-     * @param outPath           File path for output.
-     * @param outFormatStrategy Strategy for output video format.
-     * @param listener          Listener instance for callback.
-     *
-     * @deprecated get a builder using {@link #into(String)} and pass options to {@link #transcode(MediaTranscoderOptions)}.
-     */
-    @Deprecated
-    public Future<Void> transcodeVideo(@NonNull final DataSource dataSource,
-                                       @NonNull final String outPath,
-                                       @NonNull final MediaFormatStrategy outFormatStrategy,
-                                       @NonNull Listener listener) {
-        MediaTranscoderOptions options = into(outPath)
-                .setDataSource(dataSource)
-                .setMediaFormatStrategy(outFormatStrategy)
-                .setListener(listener)
-                .build();
-        return transcode(options);
-    }
-
-    /**
-     * Transcodes video file asynchronously.
-     *
      * @param options The transcoder options.
      */
     @SuppressWarnings("WeakerAccess")
@@ -177,7 +108,7 @@ public class MediaTranscoder {
                         }
                     });
                     engine.setDataSource(options.dataSource);
-                    engine.transcodeVideo(options.outPath, options.formatStrategy);
+                    engine.transcode(options.outPath, options.videoOutputStrategy, options.audioOutputStrategy);
                 } catch (IOException e) {
                     LOG.w("Transcode failed: input source (" + options.dataSource.toString() + ") not found"
                             + " or could not open output file ('" + options.outPath + "') .", e);
@@ -234,7 +165,7 @@ public class MediaTranscoder {
         /**
          * Called when transcode failed.
          *
-         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcodeVideo(String, MediaFormatStrategy)}.
+         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcode(String, OutputStrategy, OutputStrategy)}.
          *                  Note that it IS NOT {@link java.lang.Throwable}. This means {@link java.lang.Error} won't be caught.
          */
         void onTranscodeFailed(@NonNull Exception exception);

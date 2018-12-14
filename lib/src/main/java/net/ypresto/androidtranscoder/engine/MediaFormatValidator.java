@@ -17,7 +17,7 @@ package net.ypresto.androidtranscoder.engine;
 
 import android.media.MediaFormat;
 
-import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
+import net.ypresto.androidtranscoder.utils.MediaFormatConstants;
 import net.ypresto.androidtranscoder.utils.AvcCsdUtils;
 import net.ypresto.androidtranscoder.utils.AvcSpsUtils;
 
@@ -34,7 +34,7 @@ class MediaFormatValidator {
         String mime = format.getString(MediaFormat.KEY_MIME);
         // Refer: http://developer.android.com/guide/appendix/media-formats.html#core
         // Refer: http://en.wikipedia.org/wiki/MPEG-4_Part_14#Data_streams
-        if (!MediaFormatExtraConstants.MIMETYPE_VIDEO_AVC.equals(mime)) {
+        if (!MediaFormatConstants.MIMETYPE_VIDEO_AVC.equals(mime)) {
             throw new InvalidOutputFormatException("Video codecs other than AVC is not supported, actual mime type: " + mime);
         }
         ByteBuffer spsBuffer = AvcCsdUtils.getSpsBuffer(format);
@@ -47,7 +47,7 @@ class MediaFormatValidator {
     public static void validateAudioOutputFormat(@Nullable MediaFormat format) {
         if (format == null) return;
         String mime = format.getString(MediaFormat.KEY_MIME);
-        if (!MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC.equals(mime)) {
+        if (!MediaFormatConstants.MIMETYPE_AUDIO_AAC.equals(mime)) {
             throw new InvalidOutputFormatException("Audio codecs other than AAC is not supported, actual mime type: " + mime);
         }
     }

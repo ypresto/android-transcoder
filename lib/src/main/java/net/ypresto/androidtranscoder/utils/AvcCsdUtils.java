@@ -17,8 +17,6 @@ package net.ypresto.androidtranscoder.utils;
 
 import android.media.MediaFormat;
 
-import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
-
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -37,7 +35,7 @@ public class AvcCsdUtils {
      * @return ByteBuffer contains SPS without NAL header.
      */
     public static ByteBuffer getSpsBuffer(MediaFormat format) {
-        ByteBuffer sourceBuffer = format.getByteBuffer(MediaFormatExtraConstants.KEY_AVC_SPS).asReadOnlyBuffer(); // might be direct buffer
+        ByteBuffer sourceBuffer = format.getByteBuffer(MediaFormatConstants.KEY_AVC_SPS).asReadOnlyBuffer(); // might be direct buffer
         ByteBuffer prefixedSpsBuffer = ByteBuffer.allocate(sourceBuffer.limit()).order(sourceBuffer.order());
         prefixedSpsBuffer.put(sourceBuffer);
         prefixedSpsBuffer.flip();

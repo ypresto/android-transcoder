@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ypresto.androidtranscoder.format;
+package net.ypresto.androidtranscoder.utils;
 
-public class MediaFormatExtraConstants {
+public class MediaFormatConstants {
     // from MediaFormat of API level >= 21, but might be usable in older APIs as native code implementation exists.
     // https://android.googlesource.com/platform/frameworks/av/+/lollipop-release/media/libstagefright/ACodec.cpp#2621
     // NOTE: native code enforces baseline profile.
@@ -50,7 +50,7 @@ public class MediaFormatExtraConstants {
     // from MediaFormat of API level >= 21
     public static final String MIMETYPE_AUDIO_AAC = "audio/mp4a-latm";
 
-    private MediaFormatExtraConstants() {
+    private MediaFormatConstants() {
         throw new RuntimeException();
     }
 }

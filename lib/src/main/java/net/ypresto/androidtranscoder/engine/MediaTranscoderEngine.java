@@ -23,11 +23,11 @@ import android.os.Build;
 import android.util.Log;
 
 import net.ypresto.androidtranscoder.BuildConfig;
-import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import net.ypresto.androidtranscoder.source.DataSource;
+import net.ypresto.androidtranscoder.strategy.OutputStrategy;
+import net.ypresto.androidtranscoder.strategy.OutputStrategyException;
 import net.ypresto.androidtranscoder.utils.ISO6709LocationParser;
 import net.ypresto.androidtranscoder.utils.Logger;
-import net.ypresto.androidtranscoder.utils.MediaExtractorUtils;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -80,16 +80,18 @@ public class MediaTranscoderEngine {
     }
 
     /**
-     * Run video transcoding. Blocks current thread.
-     * Audio data will not be transcoded; original stream will be wrote to output file.
+     * Performs transcoding. Blocks current thread.
      *
-     * @param outputPath     File path to output transcoded video file.
-     * @param formatStrategy Output format strategy.
+     * @param outputPath File path to output transcoded video file.
+     * @param videoStrategy Output format strategy.
+     * @param audioStrategy Output format strategy.
      * @throws IOException                  when input or output file could not be opened.
      * @throws InvalidOutputFormatException when output format is not supported.
      * @throws InterruptedException         when cancel to transcode.
      */
-    public void transcodeVideo(@NonNull String outputPath, @NonNull MediaFormatStrategy formatStrategy) throws IOException, InterruptedException {
+    public void transcode(@NonNull String outputPath,
+                          @NonNull OutputStrategy videoStrategy,
+                          @NonNull OutputStrategy audioStrategy) throws IOException, InterruptedException {
         if (mDataSource == null) {
             throw new IllegalStateException("Data source is not set.");
         }
@@ -99,7 +101,7 @@ public class MediaTranscoderEngine {
             mDataSource.apply(mExtractor);
             mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             setupMetadata();
-            setupTrackTranscoders(formatStrategy);
+            setupTrackTranscoders(videoStrategy, audioStrategy);
             runPipelines();
             mMuxer.stop();
         } finally {
@@ -163,13 +165,8 @@ public class MediaTranscoderEngine {
         LOG.v("Duration (us): " + mDurationUs);
     }
 
-    private void setupTrackTranscoders(MediaFormatStrategy formatStrategy) {
-        MediaExtractorUtils.TrackResult trackResult = MediaExtractorUtils.getFirstVideoAndAudioTrack(mExtractor);
-        MediaFormat videoOutputFormat = formatStrategy.createVideoOutputFormat(trackResult.mVideoTrackFormat);
-        MediaFormat audioOutputFormat = formatStrategy.createAudioOutputFormat(trackResult.mAudioTrackFormat);
-        if (videoOutputFormat == null && audioOutputFormat == null) {
-            throw new InvalidOutputFormatException("MediaFormatStrategy returned pass-through for both video and audio. No transcoding is necessary.");
-        }
+    @SuppressWarnings("CaughtExceptionImmediatelyRethrown")
+    private void setupTrackTranscoders(OutputStrategy videoStrategy, OutputStrategy audioStrategy) {
         QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, new QueuedMuxer.Listener() {
             @Override
             public void onDetermineOutputFormat() {
@@ -177,25 +174,54 @@ public class MediaTranscoderEngine {
                 MediaFormatValidator.validateAudioOutputFormat(mAudioTrackTranscoder.getDeterminedFormat());
             }
         });
+        TracksInfo info = TracksInfo.fromExtractor(mExtractor);
 
-        if (videoOutputFormat == null) {
-            mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+        // Video format.
+        if (!info.hasVideo()) {
+            mVideoTrackTranscoder = new NoOpTrackTranscoder();
         } else {
-            mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor, trackResult.mVideoTrackIndex, videoOutputFormat, queuedMuxer);
+            try {
+                MediaFormat videoFormat = videoStrategy.createOutputFormat(info.videoTrackFormat);
+                if (videoFormat == null) {
+                    mVideoTrackTranscoder = new NoOpTrackTranscoder();
+                } else if (videoFormat == info.videoTrackFormat) {
+                    mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
+                            info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+                } else {
+                    mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor,
+                            info.videoTrackIndex, videoFormat, queuedMuxer);
+                }
+            } catch (OutputStrategyException strategyException) {
+                // Abort. TODO add policy for alreadyCompressed
+                throw strategyException;
+            }
         }
         mVideoTrackTranscoder.setup();
-        if (!trackResult.hasAudio()) {
+
+        // Audio format.
+        if (!info.hasAudio()) {
             mAudioTrackTranscoder = new NoOpTrackTranscoder();
-        } else if (audioOutputFormat == null) {
-            mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
         } else {
-            mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor, trackResult.mAudioTrackIndex, audioOutputFormat, queuedMuxer);
+            try {
+                MediaFormat audioFormat = audioStrategy.createOutputFormat(info.audioTrackFormat);
+                if (audioFormat == null) {
+                    mAudioTrackTranscoder = new NoOpTrackTranscoder();
+                } else if (audioFormat == info.audioTrackFormat) {
+                    mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
+                            info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+                } else {
+                    mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor,
+                            info.audioTrackIndex, audioFormat, queuedMuxer);
+                }
+            } catch (OutputStrategyException strategyException) {
+                // Abort. TODO add policy for alreadyCompressed
+                throw strategyException;
+            }
         }
         mAudioTrackTranscoder.setup();
-        mExtractor.selectTrack(trackResult.mVideoTrackIndex);
-        if (trackResult.hasAudio()) {
-            mExtractor.selectTrack(trackResult.mAudioTrackIndex);
-        }
+
+        if (info.hasVideo()) mExtractor.selectTrack(info.videoTrackIndex);
+        if (info.hasAudio()) mExtractor.selectTrack(info.audioTrackIndex);
     }
 
     private void runPipelines() throws InterruptedException {

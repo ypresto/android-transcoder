@@ -14,9 +14,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
-import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
-import net.ypresto.androidtranscoder.source.DataSource;
-import net.ypresto.androidtranscoder.source.UriDataSource;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.File;
@@ -111,10 +108,7 @@ public class TranscoderActivity extends Activity {
                                 public void onTranscodeFailed(@NonNull Exception exception) {
                                     onTranscodeFinished(false, "Transcoder error occurred.");
                                 }
-                            }).setMediaFormatStrategy(
-                                    MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000,
-                                            128 * 1000, 1)
-                            ).transcode();
+                            }).transcode();
                 }
                 break;
             }

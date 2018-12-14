@@ -5,11 +5,13 @@ import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
 
-import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 import net.ypresto.androidtranscoder.source.DataSource;
 import net.ypresto.androidtranscoder.source.FileDescriptorDataSource;
 import net.ypresto.androidtranscoder.source.FilePathDataSource;
 import net.ypresto.androidtranscoder.source.UriDataSource;
+import net.ypresto.androidtranscoder.strategy.Default720pVideoStrategy;
+import net.ypresto.androidtranscoder.strategy.DefaultAudioStrategy;
+import net.ypresto.androidtranscoder.strategy.OutputStrategy;
 
 import java.io.FileDescriptor;
 import java.util.concurrent.Future;
@@ -20,22 +22,25 @@ import androidx.annotation.Nullable;
 /**
  * Collects transcoding options consumed by {@link MediaTranscoder}.
  */
+@SuppressWarnings("WeakerAccess")
 public class MediaTranscoderOptions {
 
     private MediaTranscoderOptions() {}
 
     String outPath;
     DataSource dataSource;
-    MediaFormatStrategy formatStrategy;
+    OutputStrategy audioOutputStrategy;
+    OutputStrategy videoOutputStrategy;
     MediaTranscoder.Listener listener;
     Handler listenerHandler;
 
     public static class Builder {
         private String outPath;
         private DataSource dataSource;
-        private MediaFormatStrategy formatStrategy;
         private MediaTranscoder.Listener listener;
         private Handler listenerHandler;
+        private OutputStrategy audioOutputStrategy;
+        private OutputStrategy videoOutputStrategy;
 
         Builder(@NonNull String outPath) {
             this.outPath = outPath;
@@ -61,8 +66,27 @@ public class MediaTranscoderOptions {
             return this;
         }
 
-        public Builder setMediaFormatStrategy(@NonNull MediaFormatStrategy formatStrategy) {
-            this.formatStrategy = formatStrategy;
+        /**
+         * Sets the audio output strategy. If absent, this defaults to
+         * {@link net.ypresto.androidtranscoder.strategy.DefaultAudioStrategy}.
+         *
+         * @param outputStrategy the desired strategy
+         * @return this for chaining
+         */
+        public Builder setAudioOutputStrategy(@Nullable OutputStrategy outputStrategy) {
+            this.audioOutputStrategy = outputStrategy;
+            return this;
+        }
+
+        /**
+         * Sets the video output strategy. If absent, this defaults to the 16:9
+         * {@link net.ypresto.androidtranscoder.strategy.Default720pVideoStrategy}.
+         *
+         * @param outputStrategy the desired strategy
+         * @return this for chaining
+         */
+        public Builder setVideoOutputStrategy(@Nullable OutputStrategy outputStrategy) {
+            this.videoOutputStrategy = outputStrategy;
             return this;
         }
 
@@ -89,17 +113,19 @@ public class MediaTranscoderOptions {
             if (listener == null) throw new IllegalStateException("listener can't be null");
             if (dataSource == null) throw new IllegalStateException("data source can't be null");
             if (outPath == null) throw new IllegalStateException("out path can't be null");
-            if (formatStrategy == null) throw new IllegalStateException("format strategy can't be null");
             if (listenerHandler == null) {
                 Looper looper = Looper.myLooper();
                 if (looper == null) looper = Looper.getMainLooper();
                 listenerHandler = new Handler(looper);
             }
+            if (audioOutputStrategy == null) audioOutputStrategy = new DefaultAudioStrategy(DefaultAudioStrategy.AUDIO_CHANNELS_AS_IS);
+            if (videoOutputStrategy == null) videoOutputStrategy = new Default720pVideoStrategy();
             MediaTranscoderOptions options = new MediaTranscoderOptions();
             options.listener = listener;
             options.dataSource = dataSource;
             options.outPath = outPath;
-            options.formatStrategy = formatStrategy;
+            options.audioOutputStrategy = audioOutputStrategy;
+            options.videoOutputStrategy = videoOutputStrategy;
             return options;
         }
 
