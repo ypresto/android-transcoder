@@ -73,46 +73,48 @@ public class TranscoderActivity extends Activity {
                         Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    final DataSource dataSource = new UriDataSource(this, data.getData());
+
                     final ProgressBar progressBar = findViewById(R.id.progress_bar);
                     progressBar.setMax(PROGRESS_BAR_MAX);
                     final long startTime = SystemClock.uptimeMillis();
-                    MediaTranscoder.Listener listener = new MediaTranscoder.Listener() {
-                        @Override
-                        public void onTranscodeProgress(double progress) {
-                            if (progress < 0) {
-                                progressBar.setIndeterminate(true);
-                            } else {
-                                progressBar.setIndeterminate(false);
-                                progressBar.setProgress((int) Math.round(progress * PROGRESS_BAR_MAX));
-                            }
-                        }
-
-                        @Override
-                        public void onTranscodeCompleted() {
-                            LOG.i("transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                            onTranscodeFinished(true, "transcoded file placed on " + file);
-                            Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
-                            startActivity(new Intent(Intent.ACTION_VIEW)
-                                    .setDataAndType(uri, "video/mp4")
-                                    .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
-                        }
-
-                        @Override
-                        public void onTranscodeCanceled() {
-                            onTranscodeFinished(false, "Transcoder canceled.");
-                        }
-
-                        @Override
-                        public void onTranscodeFailed(@NonNull Exception exception) {
-                            onTranscodeFinished(false, "Transcoder error occurred.");
-                        }
-                    };
                     LOG.i("transcoding into " + file);
-                    mFuture = MediaTranscoder.getInstance().transcodeVideo(dataSource, file.getAbsolutePath(),
-                            MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
-                            // MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
                     switchButtonEnabled(true);
+                    mFuture = MediaTranscoder.into(file.getAbsolutePath())
+                            .setDataSource(this, data.getData())
+                            .setListener(new MediaTranscoder.Listener() {
+                                @Override
+                                public void onTranscodeProgress(double progress) {
+                                    if (progress < 0) {
+                                        progressBar.setIndeterminate(true);
+                                    } else {
+                                        progressBar.setIndeterminate(false);
+                                        progressBar.setProgress((int) Math.round(progress * PROGRESS_BAR_MAX));
+                                    }
+                                }
+
+                                @Override
+                                public void onTranscodeCompleted() {
+                                    LOG.i("transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
+                                    onTranscodeFinished(true, "transcoded file placed on " + file);
+                                    Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
+                                    startActivity(new Intent(Intent.ACTION_VIEW)
+                                            .setDataAndType(uri, "video/mp4")
+                                            .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                                }
+
+                                @Override
+                                public void onTranscodeCanceled() {
+                                    onTranscodeFinished(false, "Transcoder canceled.");
+                                }
+
+                                @Override
+                                public void onTranscodeFailed(@NonNull Exception exception) {
+                                    onTranscodeFinished(false, "Transcoder error occurred.");
+                                }
+                            }).setMediaFormatStrategy(
+                                    MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000,
+                                            128 * 1000, 1)
+                            ).transcode();
                 }
                 break;
             }

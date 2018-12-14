@@ -82,15 +82,29 @@ public class MediaTranscoder {
     }
 
     /**
+     * Starts building transcoder options.
+     * Requires a non null absolute path to the output file.
+     *
+     * @param outPath path to output file
+     * @return an options builder
+     */
+    @NonNull
+    public static MediaTranscoderOptions.Builder into(@NonNull String outPath) {
+        return new MediaTranscoderOptions.Builder(outPath);
+    }
+
+    /**
      * Transcodes video file asynchronously.
-     * Audio track will be kept unchanged.
      *
      * @param inPath            File path for input.
      * @param outPath           File path for output.
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
+     *
+     * @deprecated get a builder using {@link #into(String)} and pass options to {@link #transcode(MediaTranscoderOptions)}.
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "SpellCheckingInspection"})
+    @Deprecated
     public Future<Void> transcodeVideo(@NonNull final String inPath,
                                        @NonNull final String outPath,
                                        @NonNull final MediaFormatStrategy outFormatStrategy,
@@ -105,7 +119,10 @@ public class MediaTranscoder {
      * @param outPath           File path for output.
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
+     *
+     * @deprecated get a builder using {@link #into(String)} and pass options to {@link #transcode(MediaTranscoderOptions)}.
      */
+    @Deprecated
     public Future<Void> transcodeVideo(@NonNull final FileDescriptor inFileDescriptor,
                                        @NonNull final String outPath,
                                        @NonNull final MediaFormatStrategy outFormatStrategy,
@@ -121,15 +138,31 @@ public class MediaTranscoder {
      * @param outPath           File path for output.
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
+     *
+     * @deprecated get a builder using {@link #into(String)} and pass options to {@link #transcode(MediaTranscoderOptions)}.
      */
+    @Deprecated
     public Future<Void> transcodeVideo(@NonNull final DataSource dataSource,
                                        @NonNull final String outPath,
                                        @NonNull final MediaFormatStrategy outFormatStrategy,
                                        @NonNull Listener listener) {
-        Looper looper = Looper.myLooper();
-        if (looper == null) looper = Looper.getMainLooper();
-        final Listener listenerWrapper = new ListenerWrapper(listener, dataSource);
-        final Handler handler = new Handler(looper);
+        MediaTranscoderOptions options = into(outPath)
+                .setDataSource(dataSource)
+                .setMediaFormatStrategy(outFormatStrategy)
+                .setListener(listener)
+                .build();
+        return transcode(options);
+    }
+
+    /**
+     * Transcodes video file asynchronously.
+     *
+     * @param options The transcoder options.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public Future<Void> transcode(@NonNull final MediaTranscoderOptions options) {
+        final Listener listenerWrapper = new ListenerWrapper(options.listenerHandler,
+                options.listener, options.dataSource);
         final AtomicReference<Future<Void>> futureReference = new AtomicReference<>();
         final Future<Void> createdFuture = mExecutor.submit(new Callable<Void>() {
             @Override
@@ -140,19 +173,14 @@ public class MediaTranscoder {
                     engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
                         @Override
                         public void onProgress(final double progress) {
-                            handler.post(new Runnable() { // TODO: reuse instance
-                                @Override
-                                public void run() {
-                                    listenerWrapper.onTranscodeProgress(progress);
-                                }
-                            });
+                            listenerWrapper.onTranscodeProgress(progress);
                         }
                     });
-                    engine.setDataSource(dataSource);
-                    engine.transcodeVideo(outPath, outFormatStrategy);
+                    engine.setDataSource(options.dataSource);
+                    engine.transcodeVideo(options.outPath, options.formatStrategy);
                 } catch (IOException e) {
-                    LOG.w("Transcode failed: input source (" + dataSource.toString() + ") not found"
-                            + " or could not open output file ('" + outPath + "') .", e);
+                    LOG.w("Transcode failed: input source (" + options.dataSource.toString() + ") not found"
+                            + " or could not open output file ('" + options.outPath + "') .", e);
                     caughtException = e;
                 } catch (InterruptedException e) {
                     LOG.i("Cancel transcode video file.", e);
@@ -163,22 +191,16 @@ public class MediaTranscoder {
                 }
 
                 final Exception exception = caughtException;
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (exception == null) {
-                            listenerWrapper.onTranscodeCompleted();
-                        } else {
-                            Future<Void> future = futureReference.get();
-                            if (future != null && future.isCancelled()) {
-                                listenerWrapper.onTranscodeCanceled();
-                            } else {
-                                listenerWrapper.onTranscodeFailed(exception);
-                            }
-                        }
+                if (exception == null) {
+                    listenerWrapper.onTranscodeCompleted();
+                } else {
+                    Future<Void> future = futureReference.get();
+                    if (future != null && future.isCancelled()) {
+                        listenerWrapper.onTranscodeCanceled();
+                    } else {
+                        listenerWrapper.onTranscodeFailed(exception);
                     }
-                });
-
+                }
                 if (exception != null) throw exception;
                 return null;
             }
@@ -188,9 +210,8 @@ public class MediaTranscoder {
     }
 
     /**
-     * Listeners for transcoder events. All the callbacks are called on the thread
-     * that invoked {@link #transcodeVideo(String, String, MediaFormatStrategy, Listener)}
-     * if it has a looper, otherwise on the UI thread.
+     * Listeners for transcoder events. All the callbacks are called on the handler
+     * specified with {@link MediaTranscoderOptions.Builder#setListenerHandler(Handler)}.
      */
     public interface Listener {
         /**
@@ -222,38 +243,64 @@ public class MediaTranscoder {
     /**
      * Wraps a Listener and a DataSource object, ensuring that the source
      * is released when transcoding ends, fails or is canceled.
+     *
+     * It posts events on the given handler.
      */
-    private class ListenerWrapper implements Listener {
+    private static class ListenerWrapper implements Listener {
 
+        private Handler mHandler;
         private Listener mListener;
         private DataSource mDataSource;
 
-        private ListenerWrapper(@NonNull Listener listener, @NonNull DataSource source) {
+        private ListenerWrapper(@NonNull Handler handler, @NonNull Listener listener, @NonNull DataSource source) {
+            mHandler = handler;
             mListener = listener;
             mDataSource = source;
         }
 
         @Override
         public void onTranscodeCanceled() {
-            mDataSource.release();
-            mListener.onTranscodeCanceled();
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mDataSource.release();
+                    mListener.onTranscodeCanceled();
+                }
+            });
         }
 
         @Override
         public void onTranscodeCompleted() {
-            mDataSource.release();
-            mListener.onTranscodeCompleted();
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mDataSource.release();
+                    mListener.onTranscodeCompleted();
+                }
+            });
         }
 
         @Override
-        public void onTranscodeFailed(@NonNull Exception exception) {
-            mDataSource.release();
-            mListener.onTranscodeFailed(exception);
+        public void onTranscodeFailed(@NonNull final Exception exception) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mDataSource.release();
+                    mListener.onTranscodeFailed(exception);
+                }
+            });
         }
 
         @Override
-        public void onTranscodeProgress(double progress) {
-            mListener.onTranscodeProgress(progress);
+        public void onTranscodeProgress(final double progress) {
+            // Don't think there's a safe way to avoid this allocation?
+            // Other than creating a pool of runnables.
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    mListener.onTranscodeProgress(progress);
+                }
+            });
         }
     }
 }
