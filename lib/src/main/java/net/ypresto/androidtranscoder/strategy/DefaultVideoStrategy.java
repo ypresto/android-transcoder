@@ -14,6 +14,8 @@ import androidx.annotation.Nullable;
  */
 public class DefaultVideoStrategy implements OutputStrategy {
 
+    private final static String MIME_TYPE = MediaFormatConstants.MIMETYPE_VIDEO_AVC;
+
     private int outSizeSmall;
     private int outSizeLarge;
 
@@ -33,7 +35,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
             Exception cause = new IllegalArgumentException("Input and output ratio do not match. This is not supported yet.");
             throw OutputStrategyException.unavailable(cause);
         }
-        if (inSizeSmall <= outSizeSmall) {
+        if (inSizeSmall <= outSizeSmall && inputFormat.getString(MediaFormat.KEY_MIME).equals(MIME_TYPE)) {
             throw OutputStrategyException.alreadyCompressed("Input min: " + inSizeSmall + ", desired min: " + outSizeSmall);
         }
         int outWidth, outHeight;
@@ -45,8 +47,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
             outHeight = outSizeLarge;
         }
         MediaFormat format = MediaFormat.createVideoFormat(
-                MediaFormatConstants.MIMETYPE_VIDEO_AVC,
-                outWidth, outHeight);
+                MIME_TYPE, outWidth, outHeight);
         copyInteger(inputFormat, format, MediaFormat.KEY_BIT_RATE);
         copyInteger(inputFormat, format, MediaFormat.KEY_FRAME_RATE);
         format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 5);

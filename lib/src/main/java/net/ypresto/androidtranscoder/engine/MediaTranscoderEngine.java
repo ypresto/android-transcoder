@@ -23,11 +23,14 @@ import android.os.Build;
 import android.util.Log;
 
 import net.ypresto.androidtranscoder.BuildConfig;
+import net.ypresto.androidtranscoder.MediaTranscoderOptions;
 import net.ypresto.androidtranscoder.source.DataSource;
 import net.ypresto.androidtranscoder.strategy.OutputStrategy;
 import net.ypresto.androidtranscoder.strategy.OutputStrategyException;
 import net.ypresto.androidtranscoder.utils.ISO6709LocationParser;
 import net.ypresto.androidtranscoder.utils.Logger;
+import net.ypresto.androidtranscoder.validator.Validator;
+import net.ypresto.androidtranscoder.validator.ValidatorException;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
@@ -82,16 +85,13 @@ public class MediaTranscoderEngine {
     /**
      * Performs transcoding. Blocks current thread.
      *
-     * @param outputPath File path to output transcoded video file.
-     * @param videoStrategy Output format strategy.
-     * @param audioStrategy Output format strategy.
-     * @throws IOException                  when input or output file could not be opened.
+     * @param options Transcoding options.
+     * @throws IOException when input or output file could not be opened.
      * @throws InvalidOutputFormatException when output format is not supported.
-     * @throws InterruptedException         when cancel to transcode.
+     * @throws InterruptedException when cancel to transcode
+     * @throws ValidatorException if validator decides transcoding is not needed.
      */
-    public void transcode(@NonNull String outputPath,
-                          @NonNull OutputStrategy videoStrategy,
-                          @NonNull OutputStrategy audioStrategy) throws IOException, InterruptedException {
+    public void transcode(@NonNull MediaTranscoderOptions options) throws IOException, InterruptedException {
         if (mDataSource == null) {
             throw new IllegalStateException("Data source is not set.");
         }
@@ -99,9 +99,9 @@ public class MediaTranscoderEngine {
             // NOTE: use single extractor to keep from running out audio track fast.
             mExtractor = new MediaExtractor();
             mDataSource.apply(mExtractor);
-            mMuxer = new MediaMuxer(outputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            mMuxer = new MediaMuxer(options.outPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
             setupMetadata();
-            setupTrackTranscoders(videoStrategy, audioStrategy);
+            setupTrackTranscoders(options);
             runPipelines();
             mMuxer.stop();
         } finally {
@@ -166,7 +166,7 @@ public class MediaTranscoderEngine {
     }
 
     @SuppressWarnings("CaughtExceptionImmediatelyRethrown")
-    private void setupTrackTranscoders(OutputStrategy videoStrategy, OutputStrategy audioStrategy) {
+    private void setupTrackTranscoders(MediaTranscoderOptions options) {
         QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, new QueuedMuxer.Listener() {
             @Override
             public void onDetermineOutputFormat() {
@@ -175,25 +175,36 @@ public class MediaTranscoderEngine {
             }
         });
         TracksInfo info = TracksInfo.fromExtractor(mExtractor);
+        Validator.TrackStatus videoStatus, audioStatus;
 
         // Video format.
         if (!info.hasVideo()) {
             mVideoTrackTranscoder = new NoOpTrackTranscoder();
+            videoStatus = Validator.TrackStatus.ABSENT;
         } else {
             try {
-                MediaFormat videoFormat = videoStrategy.createOutputFormat(info.videoTrackFormat);
+                MediaFormat videoFormat = options.videoOutputStrategy.createOutputFormat(info.videoTrackFormat);
                 if (videoFormat == null) {
                     mVideoTrackTranscoder = new NoOpTrackTranscoder();
+                    videoStatus = Validator.TrackStatus.REMOVING;
                 } else if (videoFormat == info.videoTrackFormat) {
                     mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
                             info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+                    videoStatus = Validator.TrackStatus.PASS_THROUGH;
                 } else {
                     mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor,
                             info.videoTrackIndex, videoFormat, queuedMuxer);
+                    videoStatus = Validator.TrackStatus.COMPRESSING;
                 }
             } catch (OutputStrategyException strategyException) {
-                // Abort. TODO add policy for alreadyCompressed
-                throw strategyException;
+                if (strategyException.getType() == OutputStrategyException.TYPE_ALREADY_COMPRESSED) {
+                    // Should not abort, because the other track might need compression. Use a pass through.
+                    mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
+                            info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+                    videoStatus = Validator.TrackStatus.PASS_THROUGH;
+                } else { // Abort.
+                    throw strategyException;
+                }
             }
         }
         mVideoTrackTranscoder.setup();
@@ -201,24 +212,38 @@ public class MediaTranscoderEngine {
         // Audio format.
         if (!info.hasAudio()) {
             mAudioTrackTranscoder = new NoOpTrackTranscoder();
+            audioStatus = Validator.TrackStatus.ABSENT;
         } else {
             try {
-                MediaFormat audioFormat = audioStrategy.createOutputFormat(info.audioTrackFormat);
+                MediaFormat audioFormat = options.audioOutputStrategy.createOutputFormat(info.audioTrackFormat);
                 if (audioFormat == null) {
                     mAudioTrackTranscoder = new NoOpTrackTranscoder();
+                    audioStatus = Validator.TrackStatus.REMOVING;
                 } else if (audioFormat == info.audioTrackFormat) {
                     mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
                             info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+                    audioStatus = Validator.TrackStatus.PASS_THROUGH;
                 } else {
                     mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor,
                             info.audioTrackIndex, audioFormat, queuedMuxer);
+                    audioStatus = Validator.TrackStatus.COMPRESSING;
                 }
             } catch (OutputStrategyException strategyException) {
-                // Abort. TODO add policy for alreadyCompressed
-                throw strategyException;
+                if (strategyException.getType() == OutputStrategyException.TYPE_ALREADY_COMPRESSED) {
+                    // Should not abort, because the other track might need compression. Use a pass through.
+                    mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
+                            info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+                    audioStatus = Validator.TrackStatus.PASS_THROUGH;
+                } else { // Abort.
+                    throw strategyException;
+                }
             }
         }
         mAudioTrackTranscoder.setup();
+
+        if (!options.validator.validate(videoStatus, audioStatus)) {
+            throw new ValidatorException("Validator returned false.");
+        }
 
         if (info.hasVideo()) mExtractor.selectTrack(info.videoTrackIndex);
         if (info.hasAudio()) mExtractor.selectTrack(info.audioTrackIndex);

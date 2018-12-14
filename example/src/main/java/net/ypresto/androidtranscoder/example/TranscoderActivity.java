@@ -1,11 +1,9 @@
 package net.ypresto.androidtranscoder.example;
 
 import android.app.Activity;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,8 +15,6 @@ import net.ypresto.androidtranscoder.MediaTranscoder;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
@@ -55,7 +51,7 @@ public class TranscoderActivity extends Activity {
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
         switch (requestCode) {
             case REQUEST_CODE_PICK: {
                 final File file;
@@ -90,13 +86,22 @@ public class TranscoderActivity extends Activity {
                                 }
 
                                 @Override
-                                public void onTranscodeCompleted() {
-                                    LOG.i("transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                                    onTranscodeFinished(true, "transcoded file placed on " + file);
-                                    Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
-                                    startActivity(new Intent(Intent.ACTION_VIEW)
-                                            .setDataAndType(uri, "video/mp4")
-                                            .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                                public void onTranscodeCompleted(int successCode) {
+                                    if (successCode == MediaTranscoder.SUCCESS_TRANSCODED) {
+                                        LOG.i("transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
+                                        onTranscodeFinished(true, "transcoded file placed on " + file);
+                                        Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
+                                        startActivity(new Intent(Intent.ACTION_VIEW)
+                                                .setDataAndType(uri, "video/mp4")
+                                                .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                                    } else if (successCode == MediaTranscoder.SUCCESS_NOT_NEEDED) {
+                                        // Not sure this works
+                                        LOG.i("Transcoding was not needed.");
+                                        onTranscodeFinished(true, "Transcoding not needed, source file not touched.");
+                                        startActivity(new Intent(Intent.ACTION_VIEW)
+                                                .setDataAndType(data.getData(), "video/mp4")
+                                                .setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
+                                    }
                                 }
 
                                 @Override

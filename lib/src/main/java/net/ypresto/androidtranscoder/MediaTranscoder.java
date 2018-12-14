@@ -19,8 +19,9 @@ import android.os.Handler;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
 import net.ypresto.androidtranscoder.source.DataSource;
-import net.ypresto.androidtranscoder.strategy.OutputStrategy;
 import net.ypresto.androidtranscoder.utils.Logger;
+import net.ypresto.androidtranscoder.validator.Validator;
+import net.ypresto.androidtranscoder.validator.ValidatorException;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;
@@ -30,13 +31,25 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import androidx.annotation.NonNull;
 
 public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
     private static final Logger LOG = new Logger(TAG);
+
+    /**
+     * Constant for {@link Listener#onTranscodeCompleted(int)}.
+     * Transcoding was executed successfully.
+     */
+    public static final int SUCCESS_TRANSCODED = 0;
+
+    /**
+     * Constant for {@link Listener#onTranscodeCompleted(int)}:
+     * transcoding was not executed because it was considered
+     * not necessary by the {@link Validator}.
+     */
+    public static final int SUCCESS_NOT_NEEDED = 1;
 
     private static volatile MediaTranscoder sMediaTranscoder;
 
@@ -94,11 +107,9 @@ public class MediaTranscoder {
     public Future<Void> transcode(@NonNull final MediaTranscoderOptions options) {
         final Listener listenerWrapper = new ListenerWrapper(options.listenerHandler,
                 options.listener, options.dataSource);
-        final AtomicReference<Future<Void>> futureReference = new AtomicReference<>();
-        final Future<Void> createdFuture = mExecutor.submit(new Callable<Void>() {
+        return mExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                Exception caughtException = null;
                 try {
                     MediaTranscoderEngine engine = new MediaTranscoderEngine();
                     engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
@@ -108,36 +119,30 @@ public class MediaTranscoder {
                         }
                     });
                     engine.setDataSource(options.dataSource);
-                    engine.transcode(options.outPath, options.videoOutputStrategy, options.audioOutputStrategy);
+                    engine.transcode(options);
+                    listenerWrapper.onTranscodeCompleted(SUCCESS_TRANSCODED);
+                } catch (ValidatorException e) {
+                    LOG.i("Validator has decided that the input is fine and transcoding is not necessary.");
+                    listenerWrapper.onTranscodeCompleted(SUCCESS_NOT_NEEDED);
+                } catch (InterruptedException e) {
+                    LOG.i("Cancel transcode video file.", e);
+                    listenerWrapper.onTranscodeCanceled();
                 } catch (IOException e) {
                     LOG.w("Transcode failed: input source (" + options.dataSource.toString() + ") not found"
                             + " or could not open output file ('" + options.outPath + "') .", e);
-                    caughtException = e;
-                } catch (InterruptedException e) {
-                    LOG.i("Cancel transcode video file.", e);
-                    caughtException = e;
+                    listenerWrapper.onTranscodeFailed(e);
+                    throw e;
                 } catch (RuntimeException e) {
                     LOG.e("Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
-                    caughtException = e;
+                    listenerWrapper.onTranscodeFailed(e);
+                    throw e;
+                } catch (Throwable e) {
+                    LOG.e("Unexpected error while transcoding", e);
+                    throw e;
                 }
-
-                final Exception exception = caughtException;
-                if (exception == null) {
-                    listenerWrapper.onTranscodeCompleted();
-                } else {
-                    Future<Void> future = futureReference.get();
-                    if (future != null && future.isCancelled()) {
-                        listenerWrapper.onTranscodeCanceled();
-                    } else {
-                        listenerWrapper.onTranscodeFailed(exception);
-                    }
-                }
-                if (exception != null) throw exception;
                 return null;
             }
         });
-        futureReference.set(createdFuture);
-        return createdFuture;
     }
 
     /**
@@ -153,9 +158,12 @@ public class MediaTranscoder {
         void onTranscodeProgress(double progress);
 
         /**
-         * Called when transcode completed.
+         * Called when transcode completed. The success code can be either
+         * {@link #SUCCESS_TRANSCODED} or {@link #SUCCESS_NOT_NEEDED}.
+         *
+         * @param successCode the success code
          */
-        void onTranscodeCompleted();
+        void onTranscodeCompleted(int successCode);
 
         /**
          * Called when transcode canceled.
@@ -165,7 +173,7 @@ public class MediaTranscoder {
         /**
          * Called when transcode failed.
          *
-         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcode(String, OutputStrategy, OutputStrategy)}.
+         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcode(MediaTranscoderOptions)}.
          *                  Note that it IS NOT {@link java.lang.Throwable}. This means {@link java.lang.Error} won't be caught.
          */
         void onTranscodeFailed(@NonNull Exception exception);
@@ -201,12 +209,12 @@ public class MediaTranscoder {
         }
 
         @Override
-        public void onTranscodeCompleted() {
+        public void onTranscodeCompleted(final int successCode) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     mDataSource.release();
-                    mListener.onTranscodeCompleted();
+                    mListener.onTranscodeCompleted(successCode);
                 }
             });
         }

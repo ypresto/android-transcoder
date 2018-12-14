@@ -12,6 +12,8 @@ import net.ypresto.androidtranscoder.source.UriDataSource;
 import net.ypresto.androidtranscoder.strategy.Default720pVideoStrategy;
 import net.ypresto.androidtranscoder.strategy.DefaultAudioStrategy;
 import net.ypresto.androidtranscoder.strategy.OutputStrategy;
+import net.ypresto.androidtranscoder.validator.DefaultValidator;
+import net.ypresto.androidtranscoder.validator.Validator;
 
 import java.io.FileDescriptor;
 import java.util.concurrent.Future;
@@ -27,12 +29,13 @@ public class MediaTranscoderOptions {
 
     private MediaTranscoderOptions() {}
 
-    String outPath;
-    DataSource dataSource;
-    OutputStrategy audioOutputStrategy;
-    OutputStrategy videoOutputStrategy;
-    MediaTranscoder.Listener listener;
-    Handler listenerHandler;
+    public String outPath;
+    public DataSource dataSource;
+    public OutputStrategy audioOutputStrategy;
+    public OutputStrategy videoOutputStrategy;
+    public MediaTranscoder.Listener listener;
+    public Handler listenerHandler;
+    public Validator validator;
 
     public static class Builder {
         private String outPath;
@@ -41,6 +44,7 @@ public class MediaTranscoderOptions {
         private Handler listenerHandler;
         private OutputStrategy audioOutputStrategy;
         private OutputStrategy videoOutputStrategy;
+        private Validator validator;
 
         Builder(@NonNull String outPath) {
             this.outPath = outPath;
@@ -108,6 +112,19 @@ public class MediaTranscoderOptions {
             return this;
         }
 
+        /**
+         * Sets a validator to understand whether the transcoding process should
+         * stop before being started, based on the tracks status. Will default to
+         * {@link net.ypresto.androidtranscoder.validator.DefaultValidator}.
+         *
+         * @param validator the validator
+         * @return this for chaining
+         */
+        public Builder setValidator(@Nullable Validator validator) {
+            this.validator = validator;
+            return this;
+        }
+
         @SuppressWarnings("WeakerAccess")
         public MediaTranscoderOptions build() {
             if (listener == null) throw new IllegalStateException("listener can't be null");
@@ -120,12 +137,14 @@ public class MediaTranscoderOptions {
             }
             if (audioOutputStrategy == null) audioOutputStrategy = new DefaultAudioStrategy(DefaultAudioStrategy.AUDIO_CHANNELS_AS_IS);
             if (videoOutputStrategy == null) videoOutputStrategy = new Default720pVideoStrategy();
+            if (validator == null) validator = new DefaultValidator();
             MediaTranscoderOptions options = new MediaTranscoderOptions();
             options.listener = listener;
             options.dataSource = dataSource;
             options.outPath = outPath;
             options.audioOutputStrategy = audioOutputStrategy;
             options.videoOutputStrategy = videoOutputStrategy;
+            options.validator = validator;
             return options;
         }
 
