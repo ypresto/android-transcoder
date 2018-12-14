@@ -11,9 +11,9 @@ import java.nio.ByteBuffer;
  */
 public class MediaCodecBufferCompatWrapper {
 
-    final MediaCodec mMediaCodec;
-    final ByteBuffer[] mInputBuffers;
-    final ByteBuffer[] mOutputBuffers;
+    private final MediaCodec mMediaCodec;
+    private final ByteBuffer[] mInputBuffers;
+    private final ByteBuffer[] mOutputBuffers;
 
     public MediaCodecBufferCompatWrapper(MediaCodec mediaCodec) {
         mMediaCodec = mediaCodec;

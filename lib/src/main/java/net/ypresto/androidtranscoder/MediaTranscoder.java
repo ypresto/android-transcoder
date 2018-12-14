@@ -37,6 +37,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import androidx.annotation.NonNull;
@@ -45,20 +46,27 @@ public class MediaTranscoder {
     private static final String TAG = "MediaTranscoder";
     private static final Logger LOG = new Logger(TAG);
 
-    private static final int MAXIMUM_THREAD = 1; // TODO
     private static volatile MediaTranscoder sMediaTranscoder;
+
+    private class Factory implements ThreadFactory {
+        private AtomicInteger count = new AtomicInteger(1);
+
+        @Override
+        public Thread newThread(@NonNull Runnable runnable) {
+            return new Thread(runnable, TAG + " Thread #" + count.getAndIncrement());
+        }
+    }
+
     private ThreadPoolExecutor mExecutor;
 
     private MediaTranscoder() {
-        mExecutor = new ThreadPoolExecutor(
-                0, MAXIMUM_THREAD, 60, TimeUnit.SECONDS,
+        // This executor will execute at most 'pool' tasks concurrently,
+        // then queue all the others. CPU + 1 is used by AsyncTask.
+        int pool = Runtime.getRuntime().availableProcessors() + 1;
+        mExecutor = new ThreadPoolExecutor(pool, pool,
+                60, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
-                new ThreadFactory() {
-                    @Override
-                    public Thread newThread(Runnable r) {
-                        return new Thread(r, "MediaTranscoder-Worker");
-                    }
-                });
+                new Factory());
     }
 
     @NonNull
@@ -81,12 +89,12 @@ public class MediaTranscoder {
      * @param outPath           File path for output.
      * @param outFormatStrategy Strategy for output video format.
      * @param listener          Listener instance for callback.
-     * @throws IOException if input file could not be read.
      */
-    public Future<Void> transcodeVideo(
-            @NonNull final String inPath, @NonNull final String outPath,
-            @NonNull final MediaFormatStrategy outFormatStrategy,
-            @NonNull final Listener listener) throws IOException {
+    @SuppressWarnings("WeakerAccess")
+    public Future<Void> transcodeVideo(@NonNull final String inPath,
+                                       @NonNull final String outPath,
+                                       @NonNull final MediaFormatStrategy outFormatStrategy,
+                                       @NonNull final Listener listener) {
         return transcodeVideo(new FilePathDataSource(inPath), outPath, outFormatStrategy, listener);
     }
 
@@ -179,6 +187,11 @@ public class MediaTranscoder {
         return createdFuture;
     }
 
+    /**
+     * Listeners for transcoder events. All the callbacks are called on the thread
+     * that invoked {@link #transcodeVideo(String, String, MediaFormatStrategy, Listener)}
+     * if it has a looper, otherwise on the UI thread.
+     */
     public interface Listener {
         /**
          * Called to notify progress.
@@ -233,7 +246,7 @@ public class MediaTranscoder {
         }
 
         @Override
-        public void onTranscodeFailed(Exception exception) {
+        public void onTranscodeFailed(@NonNull Exception exception) {
             mDataSource.release();
             mListener.onTranscodeFailed(exception);
         }

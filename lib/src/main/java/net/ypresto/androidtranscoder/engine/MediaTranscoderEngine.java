@@ -132,7 +132,7 @@ public class MediaTranscoderEngine {
         }
     }
 
-    private void setupMetadata() throws IOException {
+    private void setupMetadata() {
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
         mDataSource.apply(mediaMetadataRetriever);
 
