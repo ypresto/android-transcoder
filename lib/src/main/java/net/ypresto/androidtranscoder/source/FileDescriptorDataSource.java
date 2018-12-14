@@ -31,5 +31,6 @@ public class FileDescriptorDataSource implements DataSource {
     }
 
     @Override
-    public void release() { }
+    public void release() {
+    }
 }

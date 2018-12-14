@@ -15,6 +15,8 @@ import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategyPresets;
+import net.ypresto.androidtranscoder.source.DataSource;
+import net.ypresto.androidtranscoder.source.UriDataSource;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.File;
@@ -23,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 
 
@@ -70,16 +73,7 @@ public class TranscoderActivity extends Activity {
                         Toast.makeText(this, "Failed to create temporary file.", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    ContentResolver resolver = getContentResolver();
-                    final ParcelFileDescriptor parcelFileDescriptor;
-                    try {
-                        parcelFileDescriptor = resolver.openFileDescriptor(data.getData(), "r");
-                    } catch (FileNotFoundException e) {
-                        LOG.w("Could not open '" + data.getDataString() + "'", e);
-                        Toast.makeText(TranscoderActivity.this, "File not found.", Toast.LENGTH_LONG).show();
-                        return;
-                    }
-                    final FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                    final DataSource dataSource = new UriDataSource(this, data.getData());
                     final ProgressBar progressBar = findViewById(R.id.progress_bar);
                     progressBar.setMax(PROGRESS_BAR_MAX);
                     final long startTime = SystemClock.uptimeMillis();
@@ -97,7 +91,7 @@ public class TranscoderActivity extends Activity {
                         @Override
                         public void onTranscodeCompleted() {
                             LOG.i("transcoding took " + (SystemClock.uptimeMillis() - startTime) + "ms");
-                            onTranscodeFinished(true, "transcoded file placed on " + file, parcelFileDescriptor);
+                            onTranscodeFinished(true, "transcoded file placed on " + file);
                             Uri uri = FileProvider.getUriForFile(TranscoderActivity.this, FILE_PROVIDER_AUTHORITY, file);
                             startActivity(new Intent(Intent.ACTION_VIEW)
                                     .setDataAndType(uri, "video/mp4")
@@ -106,16 +100,16 @@ public class TranscoderActivity extends Activity {
 
                         @Override
                         public void onTranscodeCanceled() {
-                            onTranscodeFinished(false, "Transcoder canceled.", parcelFileDescriptor);
+                            onTranscodeFinished(false, "Transcoder canceled.");
                         }
 
                         @Override
-                        public void onTranscodeFailed(Exception exception) {
-                            onTranscodeFinished(false, "Transcoder error occurred.", parcelFileDescriptor);
+                        public void onTranscodeFailed(@NonNull Exception exception) {
+                            onTranscodeFinished(false, "Transcoder error occurred.");
                         }
                     };
                     LOG.i("transcoding into " + file);
-                    mFuture = MediaTranscoder.getInstance().transcodeVideo(fileDescriptor, file.getAbsolutePath(),
+                    mFuture = MediaTranscoder.getInstance().transcodeVideo(dataSource, file.getAbsolutePath(),
                             MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
                             // MediaFormatStrategyPresets.createAndroid720pStrategy(8000 * 1000, 128 * 1000, 1), listener);
                     switchButtonEnabled(true);
@@ -146,17 +140,12 @@ public class TranscoderActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void onTranscodeFinished(boolean isSuccess, String toastMessage, ParcelFileDescriptor parcelFileDescriptor) {
-        final ProgressBar progressBar = (ProgressBar) findViewById(R.id.progress_bar);
+    private void onTranscodeFinished(boolean isSuccess, String toastMessage) {
+        final ProgressBar progressBar = findViewById(R.id.progress_bar);
         progressBar.setIndeterminate(false);
         progressBar.setProgress(isSuccess ? PROGRESS_BAR_MAX : 0);
         switchButtonEnabled(false);
         Toast.makeText(TranscoderActivity.this, toastMessage, Toast.LENGTH_LONG).show();
-        try {
-            parcelFileDescriptor.close();
-        } catch (IOException e) {
-            LOG.w("Error while closing", e);
-        }
     }
 
     private void switchButtonEnabled(boolean isProgress) {
