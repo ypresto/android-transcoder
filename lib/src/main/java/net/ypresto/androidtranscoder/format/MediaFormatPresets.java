@@ -27,17 +27,6 @@ public class MediaFormatPresets {
     private MediaFormatPresets() {
     }
 
-    // preset similar to iOS SDK's AVAssetExportPreset960x540
-    @Deprecated
-    public static MediaFormat getExportPreset960x540() {
-        MediaFormat format = MediaFormat.createVideoFormat("video/avc", 960, 540);
-        format.setInteger(MediaFormat.KEY_BIT_RATE, 5500 * 1000);
-        format.setInteger(MediaFormat.KEY_COLOR_FORMAT, MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-        format.setInteger(MediaFormat.KEY_FRAME_RATE, 30);
-        format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
-        return format;
-    }
-
     /**
      * Preset similar to iOS SDK's AVAssetExportPreset960x540.
      * Note that encoding resolutions of this preset are not supported in all devices e.g. Nexus 4.
@@ -46,6 +35,7 @@ public class MediaFormatPresets {
      * @param originalHeight Input video height.
      * @return MediaFormat instance, or null if pass through.
      */
+    @SuppressWarnings("WeakerAccess")
     public static MediaFormat getExportPreset960x540(int originalWidth, int originalHeight) {
         int longerLength = Math.max(originalWidth, originalHeight);
         int shorterLength = Math.min(originalWidth, originalHeight);
@@ -67,6 +57,7 @@ public class MediaFormatPresets {
             height = scaledShorter;
         } else {
             width = scaledShorter;
+            //noinspection SuspiciousNameCombination
             height = LONGER_LENGTH_960x540;
         }
 

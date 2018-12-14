@@ -22,6 +22,7 @@ import android.util.Log;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 class Android720pFormatStrategy implements MediaFormatStrategy {
     private static final String TAG = "720pFormatStrategy";
@@ -50,6 +51,7 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
         mAudioChannels = audioChannels;
     }
 
+    @Nullable
     @Override
     public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat) {
         int width = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
@@ -82,6 +84,7 @@ class Android720pFormatStrategy implements MediaFormatStrategy {
         return format;
     }
 
+    @Nullable
     @Override
     public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat) {
         if (mAudioBitrate == AUDIO_BITRATE_AS_IS || mAudioChannels == AUDIO_CHANNELS_AS_IS) return null;

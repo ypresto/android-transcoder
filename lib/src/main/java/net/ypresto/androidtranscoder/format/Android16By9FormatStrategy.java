@@ -22,6 +22,7 @@ import android.util.Log;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 class Android16By9FormatStrategy implements MediaFormatStrategy {
     private static final String TAG = "Android16By9FormatStrategy";
@@ -46,6 +47,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
         mAudioChannels = audioChannels;
     }
 
+    @Nullable
     @Override
     public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat) {
         int width = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
@@ -80,6 +82,7 @@ class Android16By9FormatStrategy implements MediaFormatStrategy {
         return format;
     }
 
+    @Nullable
     @Override
     public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat) {
         if (mAudioBitrate == AUDIO_BITRATE_AS_IS || mAudioChannels == AUDIO_CHANNELS_AS_IS) return null;

@@ -23,6 +23,7 @@ import net.ypresto.androidtranscoder.utils.Logger;
 import java.util.Locale;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
 * Created by yuya.tanaka on 2014/11/20.
@@ -31,7 +32,7 @@ class ExportPreset960x540Strategy implements MediaFormatStrategy {
     private static final String TAG = "ExportPreset960x540Strategy";
     private static final Logger LOG = new Logger(TAG);
 
-
+    @Nullable
     @Override
     public MediaFormat createVideoOutputFormat(@NonNull MediaFormat inputFormat) {
         // TODO: detect non-baseline profile and throw exception
@@ -45,6 +46,7 @@ class ExportPreset960x540Strategy implements MediaFormatStrategy {
         return outputFormat;
     }
 
+    @Nullable
     @Override
     public MediaFormat createAudioOutputFormat(@NonNull MediaFormat inputFormat) {
         // TODO
