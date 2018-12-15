@@ -1,11 +1,11 @@
-package net.ypresto.androidtranscoder.engine;
+package net.ypresto.androidtranscoder.transcode;
 
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
-import net.ypresto.androidtranscoder.transcode.TrackTranscoder;
+import net.ypresto.androidtranscoder.engine.QueuedMuxer;
 
 import java.io.IOException;
 

@@ -1,9 +1,10 @@
-package net.ypresto.androidtranscoder.engine;
+package net.ypresto.androidtranscoder.transcode;
 
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
+import net.ypresto.androidtranscoder.remix.AudioRemixer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

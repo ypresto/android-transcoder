@@ -16,7 +16,7 @@
 // from: https://android.googlesource.com/platform/cts/+/lollipop-release/tests/tests/media/src/android/media/cts/OutputSurface.java
 // blob: fc8ad9cd390c5c311f015d3b7c1359e4d295bc52
 // modified: change TIMEOUT_MS from 500 to 10000
-package net.ypresto.androidtranscoder.engine;
+package net.ypresto.androidtranscoder.transcode.opengl;
 import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
@@ -43,7 +43,7 @@ import net.ypresto.androidtranscoder.utils.Logger;
  * By default, the Surface will be using a BufferQueue in asynchronous mode, so we
  * can potentially drop frames.
  */
-class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
+public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
     private static final String TAG = "OutputSurface";
     private static final Logger LOG = new Logger(TAG);
     private EGLDisplay mEGLDisplay = EGL14.EGL_NO_DISPLAY;

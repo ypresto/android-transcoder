@@ -15,7 +15,7 @@
  */
 // from: https://android.googlesource.com/platform/cts/+/lollipop-release/tests/tests/media/src/android/media/cts/InputSurface.java
 // blob: 157ed88d143229e4edb6889daf18fb73aa2fc5a5
-package net.ypresto.androidtranscoder.engine;
+package net.ypresto.androidtranscoder.transcode.opengl;
 import android.opengl.EGL14;
 import android.opengl.EGLConfig;
 import android.opengl.EGLContext;
@@ -23,6 +23,7 @@ import android.opengl.EGLDisplay;
 import android.opengl.EGLExt;
 import android.opengl.EGLSurface;
 import android.view.Surface;
+
 /**
  * Holds state associated with a Surface used for MediaCodec encoder input.
  * <p>
@@ -30,7 +31,7 @@ import android.view.Surface;
  * to create an EGL window surface.  Calls to eglSwapBuffers() cause a frame of data to be sent
  * to the video encoder.
  */
-class InputSurface {
+public class InputSurface {
     private static final String TAG = "InputSurface";
     private static final int EGL_RECORDABLE_ANDROID = 0x3142;
     private EGLDisplay mEGLDisplay = EGL14.EGL_NO_DISPLAY;
