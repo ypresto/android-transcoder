@@ -4,6 +4,7 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.os.Build;
 
+import net.ypresto.androidtranscoder.strategy.size.AtMostSizer;
 import net.ypresto.androidtranscoder.strategy.size.ExactSizer;
 import net.ypresto.androidtranscoder.strategy.size.FractionSizer;
 import net.ypresto.androidtranscoder.strategy.size.Size;
@@ -38,12 +39,40 @@ public class DefaultVideoStrategy implements OutputStrategy {
         private float targetIFrameInterval;
     }
 
+    /**
+     * Creates a new {@link Builder} with an {@link ExactSizer}
+     * using given dimensions.
+     * @return a strategy builder
+     */
     public static Builder exact(int firstSize, int secondSize) {
         return new Builder(new ExactSizer(firstSize, secondSize));
     }
 
+    /**
+     * Creates a new {@link Builder} with a {@link FractionSizer}
+     * using given downscale fraction.
+     * @return a strategy builder
+     */
     public static Builder fraction(float fraction) {
         return new Builder(new FractionSizer(fraction));
+    }
+
+    /**
+     * Creates a new {@link Builder} with an {@link AtMostSizer}
+     * using given constraint.
+     * @return a strategy builder
+     */
+    public static Builder atMost(int atMostSize) {
+        return new Builder(new AtMostSizer(atMostSize));
+    }
+
+    /**
+     * Creates a new {@link Builder} with an {@link AtMostSizer}
+     * using given constraints.
+     * @return a strategy builder
+     */
+    public static Builder atMost(int atMostMinor, int atMostMajor) {
+        return new Builder(new AtMostSizer(atMostMinor, atMostMajor));
     }
 
     public static class Builder {
@@ -52,7 +81,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
         private long targetBitRate = BITRATE_UNKNOWN;
         private float targetIFrameInterval = DEFAULT_I_FRAME_INTERVAL;
 
-        private Builder(@NonNull Sizer sizer) {
+        public Builder(@NonNull Sizer sizer) {
             this.sizer = sizer;
         }
 
@@ -103,18 +132,6 @@ public class DefaultVideoStrategy implements OutputStrategy {
     }
 
     private final Options options;
-
-    public DefaultVideoStrategy(int firstSize, int secondSize, int frameRate) {
-        this(firstSize, secondSize, frameRate, DEFAULT_I_FRAME_INTERVAL, BITRATE_UNKNOWN);
-    }
-
-    public DefaultVideoStrategy(int firstSize, int secondSize, int frameRate, long bitRate) {
-        this(firstSize, secondSize, frameRate, DEFAULT_I_FRAME_INTERVAL, bitRate);
-    }
-
-    public DefaultVideoStrategy(int firstSize, int secondSize, int frameRate, float iFrameInterval, long bitRate) {
-        this(exact(firstSize, secondSize).frameRate(frameRate).iFrameInterval(iFrameInterval).bitRate(bitRate).options());
-    }
 
     public DefaultVideoStrategy(@NonNull Options options) {
         this.options = options;

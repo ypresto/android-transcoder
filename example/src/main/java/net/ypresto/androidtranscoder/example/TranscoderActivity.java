@@ -75,8 +75,6 @@ public class TranscoderActivity extends Activity {
                     switchButtonEnabled(true);
                     mFuture = MediaTranscoder.into(file.getAbsolutePath())
                             .setDataSource(this, data.getData())
-                            // TODO temp
-                            .setVideoOutputStrategy(DefaultVideoStrategy.fraction(0.5F).build())
                             .setListener(new MediaTranscoder.Listener() {
                                 @Override
                                 public void onTranscodeProgress(double progress) {
