@@ -26,6 +26,8 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
+import androidx.annotation.NonNull;
+
 /**
  * This class queues until all output track formats are determined.
  */
@@ -36,6 +38,8 @@ public class QueuedMuxer {
     private static final int BUFFER_SIZE = 64 * 1024; // I have no idea whether this value is appropriate or not...
     private final MediaMuxer mMuxer;
     private final Listener mListener;
+    private final TracksInfo mInfo;
+
     private MediaFormat mVideoFormat;
     private MediaFormat mAudioFormat;
     private int mVideoTrackIndex;
@@ -44,13 +48,21 @@ public class QueuedMuxer {
     private final List<SampleInfo> mSampleInfoList;
     private boolean mMuxerStarted;
 
-    QueuedMuxer(MediaMuxer muxer, Listener listener) {
+    QueuedMuxer(@NonNull MediaMuxer muxer, @NonNull TracksInfo info, @NonNull Listener listener) {
         mMuxer = muxer;
+        mInfo = info;
         mListener = listener;
         mSampleInfoList = new ArrayList<>();
     }
 
-    public void setOutputFormat(SampleType sampleType, MediaFormat format) {
+    /**
+     * Called by {@link net.ypresto.androidtranscoder.transcode.TrackTranscoder}s
+     * anytime the encoder output format changes (might actually be just once).
+     *
+     * @param sampleType the sample type, either audio or video
+     * @param format the new format
+     */
+    public void setOutputFormat(@NonNull SampleType sampleType, @NonNull MediaFormat format) {
         switch (sampleType) {
             case VIDEO:
                 mVideoFormat = format;
@@ -65,31 +77,41 @@ public class QueuedMuxer {
     }
 
     private void onSetOutputFormat() {
-        if (mVideoFormat == null || mAudioFormat == null) return;
-        mListener.onDetermineOutputFormat();
+        boolean isTranscodingVideo = mInfo.videoTrackStatus.isTranscoding();
+        boolean isTranscodingAudio = mInfo.audioTrackStatus.isTranscoding();
+        boolean isVideoReady = mVideoFormat != null || !isTranscodingVideo;
+        boolean isAudioReady = mAudioFormat != null || !isTranscodingAudio;
+        if (!isVideoReady || !isAudioReady) return;
+        if (mMuxerStarted) return;
 
-        mVideoTrackIndex = mMuxer.addTrack(mVideoFormat);
-        LOG.v("Added track #" + mVideoTrackIndex + " with " + mVideoFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
-        mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
-        LOG.v("Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
+        // If both video and audio are ready, notify the listener and go on.
+        // We will stop buffering data and we will start actually muxing it.
+        mListener.onDetermineOutputFormat();
+        if (isTranscodingVideo) {
+            mVideoTrackIndex = mMuxer.addTrack(mVideoFormat);
+            LOG.v("Added track #" + mVideoTrackIndex + " with " + mVideoFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
+        }
+        if (isTranscodingAudio) {
+            mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
+            LOG.v("Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
+        }
         mMuxer.start();
         mMuxerStarted = true;
-
-        if (mByteBuffer == null) {
-            mByteBuffer = ByteBuffer.allocate(0);
+        if (mSampleInfoList.size() > 0) {
+            // Write pending data.
+            mByteBuffer.flip();
+            LOG.v("Output format determined, writing " + mSampleInfoList.size()
+                    + " samples / " + mByteBuffer.limit() + " bytes to muxer.");
+            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+            int offset = 0;
+            for (SampleInfo sampleInfo : mSampleInfoList) {
+                sampleInfo.writeToBufferInfo(bufferInfo, offset);
+                writeSampleData(sampleInfo.mSampleType, mByteBuffer, bufferInfo);
+                offset += sampleInfo.mSize;
+            }
+            mSampleInfoList.clear();
+            mByteBuffer = null;
         }
-        mByteBuffer.flip();
-        LOG.v("Output format determined, writing " + mSampleInfoList.size() +
-                " samples / " + mByteBuffer.limit() + " bytes to muxer.");
-        MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-        int offset = 0;
-        for (SampleInfo sampleInfo : mSampleInfoList) {
-            sampleInfo.writeToBufferInfo(bufferInfo, offset);
-            writeSampleData(sampleInfo.mSampleType, mByteBuffer, bufferInfo);
-            offset += sampleInfo.mSize;
-        }
-        mSampleInfoList.clear();
-        mByteBuffer = null;
     }
 
     public void writeSampleData(SampleType sampleType, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) {

@@ -1,5 +1,7 @@
 package net.ypresto.androidtranscoder.validator;
 
+import net.ypresto.androidtranscoder.engine.TrackStatus;
+
 /**
  * A validator determines if the transcoding process should proceed or not,
  * after the {@link net.ypresto.androidtranscoder.strategy.OutputStrategy} have
@@ -16,7 +18,4 @@ public interface Validator {
      */
     boolean validate(TrackStatus videoStatus, TrackStatus audioStatus);
 
-    public enum TrackStatus {
-        ABSENT, REMOVING, PASS_THROUGH, COMPRESSING
-    }
 }

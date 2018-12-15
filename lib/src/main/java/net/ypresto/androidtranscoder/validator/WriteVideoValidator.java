@@ -1,5 +1,7 @@
 package net.ypresto.androidtranscoder.validator;
 
+import net.ypresto.androidtranscoder.engine.TrackStatus;
+
 /**
  * A {@link Validator} that gives priority to the video track.
  * Transcoding will not happen if the video track does not need it, even if the

@@ -1,5 +1,7 @@
 package net.ypresto.androidtranscoder.validator;
 
+import net.ypresto.androidtranscoder.engine.TrackStatus;
+
 /**
  * The default {@link Validator} to understand whether to keep going with the
  * transcoding process or to abort and notify the listener.

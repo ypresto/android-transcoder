@@ -31,7 +31,6 @@ import net.ypresto.androidtranscoder.transcode.TrackTranscoder;
 import net.ypresto.androidtranscoder.transcode.VideoTrackTranscoder;
 import net.ypresto.androidtranscoder.utils.ISO6709LocationParser;
 import net.ypresto.androidtranscoder.utils.Logger;
-import net.ypresto.androidtranscoder.validator.Validator;
 import net.ypresto.androidtranscoder.validator.ValidatorException;
 
 import java.io.IOException;
@@ -168,86 +167,88 @@ public class MediaTranscoderEngine {
 
     @SuppressWarnings("CaughtExceptionImmediatelyRethrown")
     private void setupTrackTranscoders(MediaTranscoderOptions options) {
-        QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, new QueuedMuxer.Listener() {
+        TracksInfo info = TracksInfo.fromExtractor(mExtractor);
+        QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, info, new QueuedMuxer.Listener() {
             @Override
             public void onDetermineOutputFormat() {
                 MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
                 MediaFormatValidator.validateAudioOutputFormat(mAudioTrackTranscoder.getDeterminedFormat());
             }
         });
-        TracksInfo info = TracksInfo.fromExtractor(mExtractor);
-        Validator.TrackStatus videoStatus, audioStatus;
+        TrackStatus videoStatus, audioStatus;
 
         // Video format.
         if (!info.hasVideo()) {
             mVideoTrackTranscoder = new NoOpTrackTranscoder();
-            videoStatus = Validator.TrackStatus.ABSENT;
+            videoStatus = TrackStatus.ABSENT;
         } else {
             try {
                 MediaFormat videoFormat = options.videoOutputStrategy.createOutputFormat(info.videoTrackFormat);
                 if (videoFormat == null) {
                     mVideoTrackTranscoder = new NoOpTrackTranscoder();
-                    videoStatus = Validator.TrackStatus.REMOVING;
+                    videoStatus = TrackStatus.REMOVING;
                 } else if (videoFormat == info.videoTrackFormat) {
                     mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
                             info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
-                    videoStatus = Validator.TrackStatus.PASS_THROUGH;
+                    videoStatus = TrackStatus.PASS_THROUGH;
                 } else {
                     mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor,
                             info.videoTrackIndex, videoFormat, queuedMuxer);
-                    videoStatus = Validator.TrackStatus.COMPRESSING;
+                    videoStatus = TrackStatus.COMPRESSING;
                 }
             } catch (OutputStrategyException strategyException) {
                 if (strategyException.getType() == OutputStrategyException.TYPE_ALREADY_COMPRESSED) {
                     // Should not abort, because the other track might need compression. Use a pass through.
                     mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
                             info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
-                    videoStatus = Validator.TrackStatus.PASS_THROUGH;
+                    videoStatus = TrackStatus.PASS_THROUGH;
                 } else { // Abort.
                     throw strategyException;
                 }
             }
         }
+        info.videoTrackStatus = videoStatus;
         mVideoTrackTranscoder.setup();
 
         // Audio format.
         if (!info.hasAudio()) {
             mAudioTrackTranscoder = new NoOpTrackTranscoder();
-            audioStatus = Validator.TrackStatus.ABSENT;
+            audioStatus = TrackStatus.ABSENT;
         } else {
             try {
                 MediaFormat audioFormat = options.audioOutputStrategy.createOutputFormat(info.audioTrackFormat);
                 if (audioFormat == null) {
                     mAudioTrackTranscoder = new NoOpTrackTranscoder();
-                    audioStatus = Validator.TrackStatus.REMOVING;
+                    audioStatus = TrackStatus.REMOVING;
                 } else if (audioFormat == info.audioTrackFormat) {
                     mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
                             info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
-                    audioStatus = Validator.TrackStatus.PASS_THROUGH;
+                    audioStatus = TrackStatus.PASS_THROUGH;
                 } else {
                     mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor,
                             info.audioTrackIndex, audioFormat, queuedMuxer);
-                    audioStatus = Validator.TrackStatus.COMPRESSING;
+                    audioStatus = TrackStatus.COMPRESSING;
                 }
             } catch (OutputStrategyException strategyException) {
                 if (strategyException.getType() == OutputStrategyException.TYPE_ALREADY_COMPRESSED) {
                     // Should not abort, because the other track might need compression. Use a pass through.
                     mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
                             info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
-                    audioStatus = Validator.TrackStatus.PASS_THROUGH;
+                    audioStatus = TrackStatus.PASS_THROUGH;
                 } else { // Abort.
                     throw strategyException;
                 }
             }
         }
+        info.audioTrackStatus = audioStatus;
         mAudioTrackTranscoder.setup();
 
         if (!options.validator.validate(videoStatus, audioStatus)) {
             throw new ValidatorException("Validator returned false.");
         }
 
-        if (info.hasVideo()) mExtractor.selectTrack(info.videoTrackIndex);
-        if (info.hasAudio()) mExtractor.selectTrack(info.audioTrackIndex);
+        if (videoStatus.isTranscoding()) mExtractor.selectTrack(info.videoTrackIndex);
+        if (audioStatus.isTranscoding()) mExtractor.selectTrack(info.audioTrackIndex);
     }
 
     private void runPipelines() throws InterruptedException {

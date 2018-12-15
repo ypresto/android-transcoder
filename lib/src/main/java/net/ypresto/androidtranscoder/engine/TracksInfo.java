@@ -21,15 +21,20 @@ import android.media.MediaFormat;
 @SuppressWarnings("WeakerAccess")
 public class TracksInfo {
 
-    private TracksInfo() {
-    }
+    private TracksInfo() { }
 
     public int videoTrackIndex;
     public String videoTrackMime;
     public MediaFormat videoTrackFormat;
+
     public int audioTrackIndex;
     public String audioTrackMime;
     public MediaFormat audioTrackFormat;
+
+    // These refer to the compression (not the metadata) and are set
+    // internally, then consumed by the queued muxer.
+    public TrackStatus videoTrackStatus;
+    public TrackStatus audioTrackStatus;
 
     public boolean hasAudio() {
         return audioTrackIndex >= 0;
