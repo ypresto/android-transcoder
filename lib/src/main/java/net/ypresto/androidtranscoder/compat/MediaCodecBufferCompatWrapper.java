@@ -13,7 +13,7 @@ public class MediaCodecBufferCompatWrapper {
 
     private final MediaCodec mMediaCodec;
     private final ByteBuffer[] mInputBuffers;
-    private final ByteBuffer[] mOutputBuffers;
+    private ByteBuffer[] mOutputBuffers;
 
     public MediaCodecBufferCompatWrapper(MediaCodec mediaCodec) {
         mMediaCodec = mediaCodec;
@@ -38,5 +38,11 @@ public class MediaCodecBufferCompatWrapper {
             return mMediaCodec.getOutputBuffer(index);
         }
         return mOutputBuffers[index];
+    }
+
+    public void onOutputBuffersChanged() {
+        if (Build.VERSION.SDK_INT < 21) {
+            mOutputBuffers = mMediaCodec.getOutputBuffers();
+        }
     }
 }

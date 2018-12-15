@@ -19,6 +19,7 @@ import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 
+import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
 import net.ypresto.androidtranscoder.utils.MediaFormatConstants;
 
 import java.io.IOException;
@@ -38,8 +39,9 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private final MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
     private MediaCodec mDecoder;
     private MediaCodec mEncoder;
-    private ByteBuffer[] mDecoderInputBuffers;
-    private ByteBuffer[] mEncoderOutputBuffers;
+    private MediaCodecBufferCompatWrapper mDecoderBuffers;
+    private MediaCodecBufferCompatWrapper mEncoderBuffers;
+
     private MediaFormat mActualOutputFormat;
     private OutputSurface mDecoderOutputSurfaceWrapper;
     private InputSurface mEncoderInputSurfaceWrapper;
@@ -71,7 +73,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mEncoderInputSurfaceWrapper.makeCurrent();
         mEncoder.start();
         mEncoderStarted = true;
-        mEncoderOutputBuffers = mEncoder.getOutputBuffers();
+        mEncoderBuffers = new MediaCodecBufferCompatWrapper(mEncoder);
 
         MediaFormat inputFormat = mExtractor.getTrackFormat(mTrackIndex);
         if (inputFormat.containsKey(MediaFormatConstants.KEY_ROTATION_DEGREES)) {
@@ -89,7 +91,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mDecoder.configure(inputFormat, mDecoderOutputSurfaceWrapper.getSurface(), null, 0);
         mDecoder.start();
         mDecoderStarted = true;
-        mDecoderInputBuffers = mDecoder.getInputBuffers();
+        mDecoderBuffers = new MediaCodecBufferCompatWrapper(mDecoder);
     }
 
     @Override
@@ -159,7 +161,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mDecoder.queueInputBuffer(result, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             return DRAIN_STATE_NONE;
         }
-        int sampleSize = mExtractor.readSampleData(mDecoderInputBuffers[result], 0);
+        int sampleSize = mExtractor.readSampleData(mDecoderBuffers.getInputBuffer(result), 0);
         boolean isKeyFrame = (mExtractor.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0;
         mDecoder.queueInputBuffer(result, 0, sampleSize, mExtractor.getSampleTime(), isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0);
         mExtractor.advance();
@@ -207,7 +209,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
                 mMuxer.setOutputFormat(QueuedMuxer.SampleType.VIDEO, mActualOutputFormat);
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
             case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
-                mEncoderOutputBuffers = mEncoder.getOutputBuffers();
+                mEncoderBuffers.onOutputBuffersChanged();
                 return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
         if (mActualOutputFormat == null) {
@@ -223,7 +225,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mEncoder.releaseOutputBuffer(result, false);
             return DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY;
         }
-        mMuxer.writeSampleData(QueuedMuxer.SampleType.VIDEO, mEncoderOutputBuffers[result], mBufferInfo);
+        mMuxer.writeSampleData(QueuedMuxer.SampleType.VIDEO, mEncoderBuffers.getOutputBuffer(result), mBufferInfo);
         mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);
         return DRAIN_STATE_CONSUMED;
