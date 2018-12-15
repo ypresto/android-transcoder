@@ -18,7 +18,6 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.util.Log;
 
 import net.ypresto.androidtranscoder.utils.Logger;
 
@@ -43,9 +42,9 @@ public class QueuedMuxer {
     private int mAudioTrackIndex;
     private ByteBuffer mByteBuffer;
     private final List<SampleInfo> mSampleInfoList;
-    private boolean mStarted;
+    private boolean mMuxerStarted;
 
-    public QueuedMuxer(MediaMuxer muxer, Listener listener) {
+    QueuedMuxer(MediaMuxer muxer, Listener listener) {
         mMuxer = muxer;
         mListener = listener;
         mSampleInfoList = new ArrayList<>();
@@ -74,7 +73,7 @@ public class QueuedMuxer {
         mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
         LOG.v("Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
         mMuxer.start();
-        mStarted = true;
+        mMuxerStarted = true;
 
         if (mByteBuffer == null) {
             mByteBuffer = ByteBuffer.allocate(0);
@@ -86,7 +85,7 @@ public class QueuedMuxer {
         int offset = 0;
         for (SampleInfo sampleInfo : mSampleInfoList) {
             sampleInfo.writeToBufferInfo(bufferInfo, offset);
-            mMuxer.writeSampleData(getTrackIndexForSampleType(sampleInfo.mSampleType), mByteBuffer, bufferInfo);
+            writeSampleData(sampleInfo.mSampleType, mByteBuffer, bufferInfo);
             offset += sampleInfo.mSize;
         }
         mSampleInfoList.clear();
@@ -94,17 +93,18 @@ public class QueuedMuxer {
     }
 
     public void writeSampleData(SampleType sampleType, ByteBuffer byteBuf, MediaCodec.BufferInfo bufferInfo) {
-        if (mStarted) {
+        if (mMuxerStarted) {
             mMuxer.writeSampleData(getTrackIndexForSampleType(sampleType), byteBuf, bufferInfo);
-            return;
+        } else {
+            // Write to our own buffer.
+            byteBuf.limit(bufferInfo.offset + bufferInfo.size);
+            byteBuf.position(bufferInfo.offset);
+            if (mByteBuffer == null) {
+                mByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
+            }
+            mByteBuffer.put(byteBuf);
+            mSampleInfoList.add(new SampleInfo(sampleType, bufferInfo.size, bufferInfo));
         }
-        byteBuf.limit(bufferInfo.offset + bufferInfo.size);
-        byteBuf.position(bufferInfo.offset);
-        if (mByteBuffer == null) {
-            mByteBuffer = ByteBuffer.allocateDirect(BUFFER_SIZE).order(ByteOrder.nativeOrder());
-        }
-        mByteBuffer.put(byteBuf);
-        mSampleInfoList.add(new SampleInfo(sampleType, bufferInfo.size, bufferInfo));
     }
 
     private int getTrackIndexForSampleType(SampleType sampleType) {

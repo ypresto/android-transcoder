@@ -4,6 +4,11 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.os.Build;
 
+import net.ypresto.androidtranscoder.strategy.size.ExactSizer;
+import net.ypresto.androidtranscoder.strategy.size.FractionSizer;
+import net.ypresto.androidtranscoder.strategy.size.Size;
+import net.ypresto.androidtranscoder.strategy.size.Sizer;
+import net.ypresto.androidtranscoder.utils.Logger;
 import net.ypresto.androidtranscoder.utils.MediaFormatConstants;
 
 import androidx.annotation.NonNull;
@@ -14,37 +19,41 @@ import androidx.annotation.Nullable;
  * The input and output aspect ratio must match.
  */
 public class DefaultVideoStrategy implements OutputStrategy {
+    private final static String TAG = "DefaultVideoStrategy";
+    private final static Logger LOG = new Logger(TAG);
 
     private final static String MIME_TYPE = MediaFormatConstants.MIMETYPE_VIDEO_AVC;
     public final static long BITRATE_UNKNOWN = Long.MIN_VALUE;
     public final static float DEFAULT_I_FRAME_INTERVAL = 3;
+    public final static int DEFAULT_FRAME_RATE = 30;
 
     /**
      * Holds configuration values.
      */
     public static class Options {
         private Options() {}
-        private int targetSizeSmall;
-        private int targetSizeLarge;
+        private Sizer sizer;
         private long targetBitRate;
         private int targetFrameRate;
         private float targetIFrameInterval;
     }
 
-    public static Builder builder(int firstSize, int secondSize) {
-        return new Builder(firstSize, secondSize);
+    public static Builder exact(int firstSize, int secondSize) {
+        return new Builder(new ExactSizer(firstSize, secondSize));
+    }
+
+    public static Builder fraction(float fraction) {
+        return new Builder(new FractionSizer(fraction));
     }
 
     public static class Builder {
-        private int targetSizeSmall;
-        private int targetSizeLarge;
-        private Integer targetFrameRate;
+        private Sizer sizer;
+        private int targetFrameRate = DEFAULT_FRAME_RATE;
         private long targetBitRate = BITRATE_UNKNOWN;
         private float targetIFrameInterval = DEFAULT_I_FRAME_INTERVAL;
 
-        public Builder(int firstSize, int secondSize) {
-            targetSizeSmall = Math.min(firstSize, secondSize);
-            targetSizeLarge = Math.max(firstSize, secondSize);
+        private Builder(@NonNull Sizer sizer) {
+            this.sizer = sizer;
         }
 
         /**
@@ -80,12 +89,8 @@ public class DefaultVideoStrategy implements OutputStrategy {
         }
 
         public Options options() {
-            if (targetFrameRate == null) {
-                throw new IllegalArgumentException("Frame rate can not be null.");
-            }
             Options options = new Options();
-            options.targetSizeSmall = targetSizeSmall;
-            options.targetSizeLarge = targetSizeLarge;
+            options.sizer = sizer;
             options.targetFrameRate = targetFrameRate;
             options.targetBitRate = targetBitRate;
             options.targetIFrameInterval = targetIFrameInterval;
@@ -108,7 +113,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
     }
 
     public DefaultVideoStrategy(int firstSize, int secondSize, int frameRate, float iFrameInterval, long bitRate) {
-        this(builder(firstSize, secondSize).frameRate(frameRate).iFrameInterval(iFrameInterval).bitRate(bitRate).options());
+        this(exact(firstSize, secondSize).frameRate(frameRate).iFrameInterval(iFrameInterval).bitRate(bitRate).options());
     }
 
     public DefaultVideoStrategy(@NonNull Options options) {
@@ -123,21 +128,24 @@ public class DefaultVideoStrategy implements OutputStrategy {
         // Compute output size.
         int inWidth = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
         int inHeight = inputFormat.getInteger(MediaFormat.KEY_HEIGHT);
-        int inSizeSmall = Math.min(inWidth, inHeight);
-        int inSizeLarge = Math.max(inWidth, inHeight);
-        if (inSizeSmall * options.targetSizeLarge != inSizeLarge * options.targetSizeSmall) {
-            Exception cause = new IllegalArgumentException("Input and output ratio do not match. This is not supported yet.");
-            throw OutputStrategyException.unavailable(cause);
+        LOG.i("Input width&height: " + inWidth + "x" + inHeight);
+        Size inSize = new Size(inWidth, inHeight);
+        Size outSize;
+        try {
+            outSize = options.sizer.getOutputSize(inSize);
+        } catch (Exception e) {
+            throw OutputStrategyException.unavailable(e);
         }
         int outWidth, outHeight;
         if (inWidth >= inHeight) {
-            outWidth = options.targetSizeLarge;
-            outHeight = options.targetSizeSmall;
+            outWidth = outSize.getMajor();
+            outHeight = outSize.getMinor();
         } else {
-            outWidth = options.targetSizeSmall;
-            outHeight = options.targetSizeLarge;
+            outWidth = outSize.getMinor();
+            outHeight = outSize.getMajor();
         }
-        boolean sizeDone = inSizeSmall <= options.targetSizeSmall;
+        LOG.i("Output width&height: " + outWidth + "x" + outHeight);
+        boolean sizeDone = inSize.getMinor() <= outSize.getMinor();
 
         // Compute output frame rate. It can't be bigger than input frame rate.
         int inputFrameRate, outFrameRate;
@@ -160,7 +168,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
         // See if we should go on.
         if (typeDone && sizeDone && frameRateDone && frameIntervalDone) {
             throw OutputStrategyException.alreadyCompressed(
-                    "Input minSize: " + inSizeSmall + ", desired minSize: " + options.targetSizeSmall +
+                    "Input minSize: " + inSize.getMinor() + ", desired minSize: " + outSize.getMinor() +
                     "\nInput frameRate: " + inputFrameRate + ", desired frameRate: " + outFrameRate +
                     "\nInput iFrameInterval: " + inputIFrameInterval + ", desired iFrameInterval: " + options.targetIFrameInterval);
         }

@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
+import net.ypresto.androidtranscoder.strategy.DefaultVideoStrategy;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.File;
@@ -74,6 +75,8 @@ public class TranscoderActivity extends Activity {
                     switchButtonEnabled(true);
                     mFuture = MediaTranscoder.into(file.getAbsolutePath())
                             .setDataSource(this, data.getData())
+                            // TODO temp
+                            .setVideoOutputStrategy(DefaultVideoStrategy.fraction(0.5F).build())
                             .setListener(new MediaTranscoder.Listener() {
                                 @Override
                                 public void onTranscodeProgress(double progress) {

@@ -66,6 +66,9 @@ class AudioChannel {
     public void setActualDecodedFormat(final MediaFormat decodedFormat) {
         mActualDecodedFormat = decodedFormat;
 
+        // TODO I think these exceptions are either useless or not in the right place.
+        // We have MediaFormatValidator doing this kind of stuff.
+
         mInputSampleRate = mActualDecodedFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE);
         if (mInputSampleRate != mEncodeFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE)) {
             throw new UnsupportedOperationException("Audio sample rate conversion not supported yet.");

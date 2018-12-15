@@ -22,7 +22,6 @@ public class AudioTrackTranscoder implements TrackTranscoder {
     private long mWrittenPresentationTimeUs;
 
     private final int mTrackIndex;
-    private final MediaFormat mInputFormat;
     private final MediaFormat mOutputFormat;
 
     private final MediaCodec.BufferInfo mBufferInfo = new MediaCodec.BufferInfo();
@@ -47,8 +46,6 @@ public class AudioTrackTranscoder implements TrackTranscoder {
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
-
-        mInputFormat = mExtractor.getTrackFormat(mTrackIndex);
     }
 
     @Override
