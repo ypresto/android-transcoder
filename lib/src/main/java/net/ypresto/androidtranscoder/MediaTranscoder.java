@@ -138,6 +138,7 @@ public class MediaTranscoder {
                     throw e;
                 } catch (Throwable e) {
                     LOG.e("Unexpected error while transcoding", e);
+                    listenerWrapper.onTranscodeFailed(e);
                     throw e;
                 }
                 return null;
@@ -172,11 +173,8 @@ public class MediaTranscoder {
 
         /**
          * Called when transcode failed.
-         *
-         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcode(MediaTranscoderOptions)}.
-         *                  Note that it IS NOT {@link java.lang.Throwable}. This means {@link java.lang.Error} won't be caught.
          */
-        void onTranscodeFailed(@NonNull Exception exception);
+        void onTranscodeFailed(@NonNull Throwable exception);
     }
 
     /**
@@ -220,7 +218,7 @@ public class MediaTranscoder {
         }
 
         @Override
-        public void onTranscodeFailed(@NonNull final Exception exception) {
+        public void onTranscodeFailed(@NonNull final Throwable exception) {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {

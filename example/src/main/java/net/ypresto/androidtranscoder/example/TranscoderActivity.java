@@ -12,7 +12,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import net.ypresto.androidtranscoder.MediaTranscoder;
-import net.ypresto.androidtranscoder.strategy.DefaultVideoStrategy;
 import net.ypresto.androidtranscoder.utils.Logger;
 
 import java.io.File;
@@ -111,7 +110,7 @@ public class TranscoderActivity extends Activity {
                                 }
 
                                 @Override
-                                public void onTranscodeFailed(@NonNull Exception exception) {
+                                public void onTranscodeFailed(@NonNull Throwable exception) {
                                     onTranscodeFinished(false, "Transcoder error occurred.");
                                 }
                             }).transcode();
