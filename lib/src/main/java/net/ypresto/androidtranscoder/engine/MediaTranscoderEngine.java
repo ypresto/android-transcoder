@@ -51,6 +51,7 @@ public class MediaTranscoderEngine {
     private DataSource mDataSource;
     private TrackTranscoder mVideoTrackTranscoder;
     private TrackTranscoder mAudioTrackTranscoder;
+    private TracksInfo mTracksInfo;
     private MediaExtractor mExtractor;
     private MediaMuxer mMuxer;
     private volatile double mProgress;
@@ -167,8 +168,8 @@ public class MediaTranscoderEngine {
 
     @SuppressWarnings("CaughtExceptionImmediatelyRethrown")
     private void setupTrackTranscoders(MediaTranscoderOptions options) {
-        TracksInfo info = TracksInfo.fromExtractor(mExtractor);
-        QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, info, new QueuedMuxer.Listener() {
+        mTracksInfo = TracksInfo.fromExtractor(mExtractor);
+        QueuedMuxer queuedMuxer = new QueuedMuxer(mMuxer, mTracksInfo, new QueuedMuxer.Listener() {
             @Override
             public void onDetermineOutputFormat() {
                 MediaFormatValidator.validateVideoOutputFormat(mVideoTrackTranscoder.getDeterminedFormat());
@@ -178,77 +179,77 @@ public class MediaTranscoderEngine {
         TrackStatus videoStatus, audioStatus;
 
         // Video format.
-        if (!info.hasVideo()) {
+        if (!mTracksInfo.hasVideo()) {
             mVideoTrackTranscoder = new NoOpTrackTranscoder();
             videoStatus = TrackStatus.ABSENT;
         } else {
             try {
-                MediaFormat videoFormat = options.videoOutputStrategy.createOutputFormat(info.videoTrackFormat);
+                MediaFormat videoFormat = options.videoOutputStrategy.createOutputFormat(mTracksInfo.videoTrackFormat);
                 if (videoFormat == null) {
                     mVideoTrackTranscoder = new NoOpTrackTranscoder();
                     videoStatus = TrackStatus.REMOVING;
-                } else if (videoFormat == info.videoTrackFormat) {
+                } else if (videoFormat == mTracksInfo.videoTrackFormat) {
                     mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
-                            info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+                            mTracksInfo.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
                     videoStatus = TrackStatus.PASS_THROUGH;
                 } else {
                     mVideoTrackTranscoder = new VideoTrackTranscoder(mExtractor,
-                            info.videoTrackIndex, videoFormat, queuedMuxer);
+                            mTracksInfo.videoTrackIndex, videoFormat, queuedMuxer);
                     videoStatus = TrackStatus.COMPRESSING;
                 }
             } catch (OutputStrategyException strategyException) {
                 if (strategyException.getType() == OutputStrategyException.TYPE_ALREADY_COMPRESSED) {
                     // Should not abort, because the other track might need compression. Use a pass through.
                     mVideoTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
-                            info.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
+                            mTracksInfo.videoTrackIndex, queuedMuxer, QueuedMuxer.SampleType.VIDEO);
                     videoStatus = TrackStatus.PASS_THROUGH;
                 } else { // Abort.
                     throw strategyException;
                 }
             }
         }
-        info.videoTrackStatus = videoStatus;
+        mTracksInfo.videoTrackStatus = videoStatus;
         mVideoTrackTranscoder.setup();
 
         // Audio format.
-        if (!info.hasAudio()) {
+        if (!mTracksInfo.hasAudio()) {
             mAudioTrackTranscoder = new NoOpTrackTranscoder();
             audioStatus = TrackStatus.ABSENT;
         } else {
             try {
-                MediaFormat audioFormat = options.audioOutputStrategy.createOutputFormat(info.audioTrackFormat);
+                MediaFormat audioFormat = options.audioOutputStrategy.createOutputFormat(mTracksInfo.audioTrackFormat);
                 if (audioFormat == null) {
                     mAudioTrackTranscoder = new NoOpTrackTranscoder();
                     audioStatus = TrackStatus.REMOVING;
-                } else if (audioFormat == info.audioTrackFormat) {
+                } else if (audioFormat == mTracksInfo.audioTrackFormat) {
                     mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
-                            info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+                            mTracksInfo.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
                     audioStatus = TrackStatus.PASS_THROUGH;
                 } else {
                     mAudioTrackTranscoder = new AudioTrackTranscoder(mExtractor,
-                            info.audioTrackIndex, audioFormat, queuedMuxer);
+                            mTracksInfo.audioTrackIndex, audioFormat, queuedMuxer);
                     audioStatus = TrackStatus.COMPRESSING;
                 }
             } catch (OutputStrategyException strategyException) {
                 if (strategyException.getType() == OutputStrategyException.TYPE_ALREADY_COMPRESSED) {
                     // Should not abort, because the other track might need compression. Use a pass through.
                     mAudioTrackTranscoder = new PassThroughTrackTranscoder(mExtractor,
-                            info.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
+                            mTracksInfo.audioTrackIndex, queuedMuxer, QueuedMuxer.SampleType.AUDIO);
                     audioStatus = TrackStatus.PASS_THROUGH;
                 } else { // Abort.
                     throw strategyException;
                 }
             }
         }
-        info.audioTrackStatus = audioStatus;
+        mTracksInfo.audioTrackStatus = audioStatus;
         mAudioTrackTranscoder.setup();
 
         if (!options.validator.validate(videoStatus, audioStatus)) {
             throw new ValidatorException("Validator returned false.");
         }
 
-        if (videoStatus.isTranscoding()) mExtractor.selectTrack(info.videoTrackIndex);
-        if (audioStatus.isTranscoding()) mExtractor.selectTrack(info.audioTrackIndex);
+        if (videoStatus.isTranscoding()) mExtractor.selectTrack(mTracksInfo.videoTrackIndex);
+        if (audioStatus.isTranscoding()) mExtractor.selectTrack(mTracksInfo.audioTrackIndex);
     }
 
     private void runPipelines() throws InterruptedException {
@@ -259,13 +260,12 @@ public class MediaTranscoderEngine {
             if (mProgressCallback != null) mProgressCallback.onProgress(progress); // unknown
         }
         while (!(mVideoTrackTranscoder.isFinished() && mAudioTrackTranscoder.isFinished())) {
-            boolean stepped = mVideoTrackTranscoder.stepPipeline()
-                    || mAudioTrackTranscoder.stepPipeline();
+            boolean stepped = mVideoTrackTranscoder.stepPipeline() || mAudioTrackTranscoder.stepPipeline();
             loopCount++;
             if (mDurationUs > 0 && loopCount % PROGRESS_INTERVAL_STEPS == 0) {
-                double videoProgress = mVideoTrackTranscoder.isFinished() ? 1.0 : Math.min(1.0, (double) mVideoTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
-                double audioProgress = mAudioTrackTranscoder.isFinished() ? 1.0 : Math.min(1.0, (double) mAudioTrackTranscoder.getWrittenPresentationTimeUs() / mDurationUs);
-                double progress = (videoProgress + audioProgress) / 2.0;
+                double videoProgress = getTranscoderProgress(mVideoTrackTranscoder, mTracksInfo.videoTrackStatus);
+                double audioProgress = getTranscoderProgress(mAudioTrackTranscoder, mTracksInfo.audioTrackStatus);
+                double progress = (videoProgress + audioProgress) / getTranscodersCount();
                 mProgress = progress;
                 if (mProgressCallback != null) mProgressCallback.onProgress(progress);
             }
@@ -273,6 +273,19 @@ public class MediaTranscoderEngine {
                 Thread.sleep(SLEEP_TO_WAIT_TRACK_TRANSCODERS);
             }
         }
+    }
+
+    private double getTranscoderProgress(TrackTranscoder transcoder, TrackStatus status) {
+        if (!status.isTranscoding()) return 0.0;
+        if (transcoder.isFinished()) return 1.0;
+        return Math.min(1.0, (double) transcoder.getWrittenPresentationTimeUs() / mDurationUs);
+    }
+
+    private int getTranscodersCount() {
+        int count = 0;
+        if (mTracksInfo.audioTrackStatus.isTranscoding()) count++;
+        if (mTracksInfo.videoTrackStatus.isTranscoding()) count++;
+        return (count > 0) ? count : 1;
     }
 
     public interface ProgressCallback {
