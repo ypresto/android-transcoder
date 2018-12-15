@@ -58,7 +58,7 @@ public class AvcCsdUtils {
         byte[] prefix4 = Arrays.copyOf(prefix3, 4);
         prefix4[3] = prefixedSpsBuffer.get();
         if (Arrays.equals(prefix4, AVC_START_CODE_4)) return;
-        throw new IllegalStateException("AVC NAL start code does not found in csd.");
+        throw new IllegalStateException("AVC NAL start code not found in csd.");
     }
 
     private AvcCsdUtils() {

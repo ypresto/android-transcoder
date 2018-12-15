@@ -29,7 +29,7 @@ class MediaFormatValidator {
     // Refer: http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Profiles
     private static final byte PROFILE_IDC_BASELINE = 66;
 
-    public static void validateVideoOutputFormat(@Nullable MediaFormat format) {
+    static void validateVideoOutputFormat(@Nullable MediaFormat format) {
         if (format == null) return;
         String mime = format.getString(MediaFormat.KEY_MIME);
         // Refer: http://developer.android.com/guide/appendix/media-formats.html#core
@@ -40,11 +40,14 @@ class MediaFormatValidator {
         ByteBuffer spsBuffer = AvcCsdUtils.getSpsBuffer(format);
         byte profileIdc = AvcSpsUtils.getProfileIdc(spsBuffer);
         if (profileIdc != PROFILE_IDC_BASELINE) {
+            // TODO: lots of devices now do actually have MP support, although it's still not enforced
+            // by Android CDD. See 2016 comment by Google employee:
+            // https://github.com/google/ExoPlayer/issues/1952#issuecomment-254206222
             throw new InvalidOutputFormatException("Non-baseline AVC video profile is not supported by Android OS, actual profile_idc: " + profileIdc);
         }
     }
 
-    public static void validateAudioOutputFormat(@Nullable MediaFormat format) {
+    static void validateAudioOutputFormat(@Nullable MediaFormat format) {
         if (format == null) return;
         String mime = format.getString(MediaFormat.KEY_MIME);
         if (!MediaFormatConstants.MIMETYPE_AUDIO_AAC.equals(mime)) {
