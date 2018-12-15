@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.ypresto.androidtranscoder.engine;
+package net.ypresto.androidtranscoder.transcode;
 
 import android.annotation.SuppressLint;
 import android.media.MediaCodec;
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
+
+import net.ypresto.androidtranscoder.engine.QueuedMuxer;
+import net.ypresto.androidtranscoder.transcode.TrackTranscoder;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

@@ -9,8 +9,8 @@ import net.ypresto.androidtranscoder.source.DataSource;
 import net.ypresto.androidtranscoder.source.FileDescriptorDataSource;
 import net.ypresto.androidtranscoder.source.FilePathDataSource;
 import net.ypresto.androidtranscoder.source.UriDataSource;
-import net.ypresto.androidtranscoder.strategy.Default720pVideoStrategy;
 import net.ypresto.androidtranscoder.strategy.DefaultAudioStrategy;
+import net.ypresto.androidtranscoder.strategy.DefaultVideoStrategies;
 import net.ypresto.androidtranscoder.strategy.OutputStrategy;
 import net.ypresto.androidtranscoder.validator.DefaultValidator;
 import net.ypresto.androidtranscoder.validator.Validator;
@@ -84,7 +84,7 @@ public class MediaTranscoderOptions {
 
         /**
          * Sets the video output strategy. If absent, this defaults to the 16:9
-         * {@link net.ypresto.androidtranscoder.strategy.Default720pVideoStrategy}.
+         * strategy returned by {@link DefaultVideoStrategies#for720x1280()}.
          *
          * @param outputStrategy the desired strategy
          * @return this for chaining
@@ -136,7 +136,7 @@ public class MediaTranscoderOptions {
                 listenerHandler = new Handler(looper);
             }
             if (audioOutputStrategy == null) audioOutputStrategy = new DefaultAudioStrategy(DefaultAudioStrategy.AUDIO_CHANNELS_AS_IS);
-            if (videoOutputStrategy == null) videoOutputStrategy = new Default720pVideoStrategy();
+            if (videoOutputStrategy == null) videoOutputStrategy = DefaultVideoStrategies.for720x1280();
             if (validator == null) validator = new DefaultValidator();
             MediaTranscoderOptions options = new MediaTranscoderOptions();
             options.listener = listener;

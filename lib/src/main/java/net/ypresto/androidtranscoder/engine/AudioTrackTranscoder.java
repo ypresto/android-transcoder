@@ -5,6 +5,7 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
+import net.ypresto.androidtranscoder.transcode.TrackTranscoder;
 
 import java.io.IOException;
 

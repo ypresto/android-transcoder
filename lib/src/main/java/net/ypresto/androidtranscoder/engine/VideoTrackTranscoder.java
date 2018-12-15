@@ -20,14 +20,17 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.compat.MediaCodecBufferCompatWrapper;
+import net.ypresto.androidtranscoder.transcode.TrackTranscoder;
+import net.ypresto.androidtranscoder.utils.Logger;
 import net.ypresto.androidtranscoder.utils.MediaFormatConstants;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 // Refer: https://android.googlesource.com/platform/cts/+/lollipop-release/tests/tests/media/src/android/media/cts/ExtractDecodeEditEncodeMuxTest.java
 public class VideoTrackTranscoder implements TrackTranscoder {
     private static final String TAG = "VideoTrackTranscoder";
+    private static final Logger LOG = new Logger(TAG);
+
     private static final int DRAIN_STATE_NONE = 0;
     private static final int DRAIN_STATE_SHOULD_RETRY_IMMEDIATELY = 1;
     private static final int DRAIN_STATE_CONSUMED = 2;
@@ -52,12 +55,23 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
 
+    // A step is defined as the microseconds between two frame.
+    // The average step is basically 1 / frame rate.
+    private float mAvgStep = 0;
+    private float mTargetAvgStep;
+    private int mRenderedSteps = -1; // frames - 1
+    private long mLastRenderedUs;
+    private long mLastStep;
+
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer) {
         mExtractor = extractor;
         mTrackIndex = trackIndex;
         mOutputFormat = outputFormat;
         mMuxer = muxer;
+
+        int frameRate = outputFormat.getInteger(MediaFormat.KEY_FRAME_RATE);
+        mTargetAvgStep = (1F / frameRate) * 1000 * 1000;
     }
 
     @Override
@@ -183,7 +197,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mIsDecoderEOS = true;
             mBufferInfo.size = 0;
         }
-        boolean doRender = (mBufferInfo.size > 0);
+        boolean doRender = shouldRenderFrame();
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
@@ -194,6 +208,39 @@ public class VideoTrackTranscoder implements TrackTranscoder {
             mEncoderInputSurfaceWrapper.swapBuffers();
         }
         return DRAIN_STATE_CONSUMED;
+    }
+
+    // TODO improve this. as it is now, rendering a frame after dropping many,
+    // will not decrease avgStep but rather increase it (for this single frame; then it starts decreasing).
+    // This has the effect that, when a frame is rendered, the following frame is always rendered,
+    // because the conditions are worse then before. After this second frame things go back to normal,
+    // but this is terrible logic.
+    private boolean shouldRenderFrame() {
+        if (mBufferInfo.size <= 0) return false;
+        if (mRenderedSteps > 0 && mAvgStep < mTargetAvgStep) {
+            // We are rendering too much. Drop this frame.
+            // Always render first 2 frames, we need them to compute the avg.
+            LOG.v("FRAME: Dropping. avg: " + mAvgStep + " target: " + mTargetAvgStep);
+            long newLastStep = mBufferInfo.presentationTimeUs - mLastRenderedUs;
+            float allSteps = (mAvgStep * mRenderedSteps) - mLastStep + newLastStep;
+            mAvgStep = allSteps / mRenderedSteps; // we didn't add a step, just increased the last
+            mLastStep = newLastStep;
+            return false;
+        } else {
+            // Render this frame, since our average step is too long or exact.
+            LOG.v("FRAME: RENDERING. avg: " + mAvgStep + " target: " + mTargetAvgStep + "New stepCount: " + (mRenderedSteps + 1));
+            if (mRenderedSteps >= 0) {
+                // Update the average value, since now we have mLastRenderedUs.
+                long step = mBufferInfo.presentationTimeUs - mLastRenderedUs;
+                float allSteps = (mAvgStep * mRenderedSteps) + step;
+                mAvgStep = allSteps / (mRenderedSteps + 1); // we added a step, so +1
+                mLastStep = step;
+            }
+            // Increment both
+            mRenderedSteps++;
+            mLastRenderedUs = mBufferInfo.presentationTimeUs;
+            return true;
+        }
     }
 
     private int drainEncoder(long timeoutUs) {
