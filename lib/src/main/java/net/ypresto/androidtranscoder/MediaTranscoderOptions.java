@@ -142,6 +142,7 @@ public class MediaTranscoderOptions {
             options.listener = listener;
             options.dataSource = dataSource;
             options.outPath = outPath;
+            options.listenerHandler = listenerHandler;
             options.audioOutputStrategy = audioOutputStrategy;
             options.videoOutputStrategy = videoOutputStrategy;
             options.validator = validator;

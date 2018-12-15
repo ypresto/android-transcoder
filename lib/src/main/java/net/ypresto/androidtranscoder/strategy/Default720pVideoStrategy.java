@@ -7,7 +7,8 @@ package net.ypresto.androidtranscoder.strategy;
  */
 public class Default720pVideoStrategy extends DefaultVideoStrategy {
 
+    // Bitrate: https://developer.android.com/guide/topics/media/media-formats
     public Default720pVideoStrategy() {
-        super(720, 1280);
+        super(720, 1280, 2L * 1000 * 1000);
     }
 }
