@@ -6,6 +6,7 @@ import android.os.Build;
 
 import net.ypresto.androidtranscoder.strategy.size.AtMostResizer;
 import net.ypresto.androidtranscoder.strategy.size.ExactResizer;
+import net.ypresto.androidtranscoder.strategy.size.ExactSize;
 import net.ypresto.androidtranscoder.strategy.size.FractionResizer;
 import net.ypresto.androidtranscoder.strategy.size.MultiResizer;
 import net.ypresto.androidtranscoder.strategy.size.PassThroughResizer;
@@ -162,7 +163,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
         int inWidth = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
         int inHeight = inputFormat.getInteger(MediaFormat.KEY_HEIGHT);
         LOG.i("Input width&height: " + inWidth + "x" + inHeight);
-        Size inSize = new Size(inWidth, inHeight);
+        Size inSize = new ExactSize(inWidth, inHeight);
         Size outSize;
         try {
             outSize = options.resizer.getOutputSize(inSize);
@@ -170,7 +171,10 @@ public class DefaultVideoStrategy implements OutputStrategy {
             throw OutputStrategyException.unavailable(e);
         }
         int outWidth, outHeight;
-        if (inWidth >= inHeight) {
+        if (outSize instanceof ExactSize) {
+            outWidth = ((ExactSize) outSize).getWidth();
+            outHeight = ((ExactSize) outSize).getHeight();
+        } else if (inWidth >= inHeight) {
             outWidth = outSize.getMajor();
             outHeight = outSize.getMinor();
         } else {

@@ -3,8 +3,8 @@ package net.ypresto.androidtranscoder.strategy.size;
 import androidx.annotation.NonNull;
 
 /**
- * A {@link Resizer} that returns the exact dimensions that were passed as input.
- * Throws if the aspect ratio does not match.
+ * A {@link Resizer} that returns the exact dimensions that were passed to the constructor.
+ * Throws if the input size aspect ratio does not match.
  */
 public class ExactResizer implements Resizer {
 
@@ -12,6 +12,10 @@ public class ExactResizer implements Resizer {
 
     public ExactResizer(int first, int second) {
         output = new Size(first, second);
+    }
+
+    public ExactResizer(@NonNull Size size) {
+        output = size;
     }
 
     @NonNull
