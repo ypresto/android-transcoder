@@ -4,11 +4,13 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.os.Build;
 
-import net.ypresto.androidtranscoder.strategy.size.AtMostSizer;
-import net.ypresto.androidtranscoder.strategy.size.ExactSizer;
-import net.ypresto.androidtranscoder.strategy.size.FractionSizer;
+import net.ypresto.androidtranscoder.strategy.size.AtMostResizer;
+import net.ypresto.androidtranscoder.strategy.size.ExactResizer;
+import net.ypresto.androidtranscoder.strategy.size.FractionResizer;
+import net.ypresto.androidtranscoder.strategy.size.MultiResizer;
+import net.ypresto.androidtranscoder.strategy.size.PassThroughResizer;
 import net.ypresto.androidtranscoder.strategy.size.Size;
-import net.ypresto.androidtranscoder.strategy.size.Sizer;
+import net.ypresto.androidtranscoder.strategy.size.Resizer;
 import net.ypresto.androidtranscoder.utils.Logger;
 import net.ypresto.androidtranscoder.utils.MediaFormatConstants;
 
@@ -33,56 +35,70 @@ public class DefaultVideoStrategy implements OutputStrategy {
      */
     public static class Options {
         private Options() {}
-        private Sizer sizer;
+        private Resizer resizer;
         private long targetBitRate;
         private int targetFrameRate;
         private float targetIFrameInterval;
     }
 
     /**
-     * Creates a new {@link Builder} with an {@link ExactSizer}
+     * Creates a new {@link Builder} with an {@link ExactResizer}
      * using given dimensions.
      * @return a strategy builder
      */
     public static Builder exact(int firstSize, int secondSize) {
-        return new Builder(new ExactSizer(firstSize, secondSize));
+        return new Builder(new ExactResizer(firstSize, secondSize));
     }
 
     /**
-     * Creates a new {@link Builder} with a {@link FractionSizer}
+     * Creates a new {@link Builder} with a {@link FractionResizer}
      * using given downscale fraction.
      * @return a strategy builder
      */
     public static Builder fraction(float fraction) {
-        return new Builder(new FractionSizer(fraction));
+        return new Builder(new FractionResizer(fraction));
     }
 
     /**
-     * Creates a new {@link Builder} with an {@link AtMostSizer}
+     * Creates a new {@link Builder} with an {@link AtMostResizer}
      * using given constraint.
      * @return a strategy builder
      */
     public static Builder atMost(int atMostSize) {
-        return new Builder(new AtMostSizer(atMostSize));
+        return new Builder(new AtMostResizer(atMostSize));
     }
 
     /**
-     * Creates a new {@link Builder} with an {@link AtMostSizer}
+     * Creates a new {@link Builder} with an {@link AtMostResizer}
      * using given constraints.
      * @return a strategy builder
      */
     public static Builder atMost(int atMostMinor, int atMostMajor) {
-        return new Builder(new AtMostSizer(atMostMinor, atMostMajor));
+        return new Builder(new AtMostResizer(atMostMinor, atMostMajor));
     }
 
     public static class Builder {
-        private Sizer sizer;
+        private MultiResizer resizer = new MultiResizer();
         private int targetFrameRate = DEFAULT_FRAME_RATE;
         private long targetBitRate = BITRATE_UNKNOWN;
         private float targetIFrameInterval = DEFAULT_I_FRAME_INTERVAL;
 
-        public Builder(@NonNull Sizer sizer) {
-            this.sizer = sizer;
+        public Builder() {
+        }
+
+        public Builder(@NonNull Resizer resizer) {
+            this.resizer.addResizer(resizer);
+        }
+
+        /**
+         * Adds another resizer to the resizer chain. By default, we use
+         * a {@link MultiResizer} so you can add more than one resizer in chain.
+         * @param resizer new resizer for backed {@link MultiResizer}
+         * @return this for chaining
+         */
+        public Builder addResizer(@NonNull Resizer resizer) {
+            this.resizer.addResizer(resizer);
+            return this;
         }
 
         /**
@@ -119,7 +135,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
 
         public Options options() {
             Options options = new Options();
-            options.sizer = sizer;
+            options.resizer = resizer;
             options.targetFrameRate = targetFrameRate;
             options.targetBitRate = targetBitRate;
             options.targetIFrameInterval = targetIFrameInterval;
@@ -149,7 +165,7 @@ public class DefaultVideoStrategy implements OutputStrategy {
         Size inSize = new Size(inWidth, inHeight);
         Size outSize;
         try {
-            outSize = options.sizer.getOutputSize(inSize);
+            outSize = options.resizer.getOutputSize(inSize);
         } catch (Exception e) {
             throw OutputStrategyException.unavailable(e);
         }

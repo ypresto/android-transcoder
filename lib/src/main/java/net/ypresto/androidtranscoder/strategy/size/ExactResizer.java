@@ -1,18 +1,16 @@
 package net.ypresto.androidtranscoder.strategy.size;
 
-import net.ypresto.androidtranscoder.strategy.OutputStrategyException;
-
 import androidx.annotation.NonNull;
 
 /**
- * A {@link Sizer} that returns the exact dimensions that were passed as input.
+ * A {@link Resizer} that returns the exact dimensions that were passed as input.
  * Throws if the aspect ratio does not match.
  */
-public class ExactSizer implements Sizer {
+public class ExactResizer implements Resizer {
 
     private final Size output;
 
-    public ExactSizer(int first, int second) {
+    public ExactResizer(int first, int second) {
         output = new Size(first, second);
     }
 

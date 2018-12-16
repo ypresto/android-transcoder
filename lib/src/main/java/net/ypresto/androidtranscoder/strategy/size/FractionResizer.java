@@ -3,14 +3,14 @@ package net.ypresto.androidtranscoder.strategy.size;
 import androidx.annotation.NonNull;
 
 /**
- * A {@link Sizer} that reduces the input size by the given fraction.
+ * A {@link Resizer} that reduces the input size by the given fraction.
  * This ensures that output dimensions are not an odd number (refused by a few codecs).
  */
-public class FractionSizer implements Sizer {
+public class FractionResizer implements Resizer {
 
     private final float fraction;
 
-    public FractionSizer(float fraction) {
+    public FractionResizer(float fraction) {
         if (fraction <= 0 || fraction > 1) {
             throw new IllegalArgumentException("Fraction must be > 0 and <= 1");
         }

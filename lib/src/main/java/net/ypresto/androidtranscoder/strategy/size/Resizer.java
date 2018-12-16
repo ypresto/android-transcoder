@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
  * by video strategies such as {@link net.ypresto.androidtranscoder.strategy.DefaultVideoStrategy}
  * to compute the output size.
  */
-public interface Sizer {
+public interface Resizer {
 
     /**
      * Parses the input size and returns the output.

@@ -3,10 +3,10 @@ package net.ypresto.androidtranscoder.strategy.size;
 import androidx.annotation.NonNull;
 
 /**
- * A {@link Sizer} that scales down the input size so that its dimension
+ * A {@link Resizer} that scales down the input size so that its dimension
  * is smaller or equal to a certain value.
  */
-public class AtMostSizer implements Sizer {
+public class AtMostResizer implements Resizer {
 
     private final int atMostMinor;
     private final int atMostMajor;
@@ -15,7 +15,7 @@ public class AtMostSizer implements Sizer {
      * Checks just the minor dimension.
      * @param atMost the dimension constraint
      */
-    public AtMostSizer(int atMost) {
+    public AtMostResizer(int atMost) {
         atMostMinor = atMost;
         atMostMajor = Integer.MAX_VALUE;
     }
@@ -25,7 +25,7 @@ public class AtMostSizer implements Sizer {
      * @param atMostMinor the minor dimension constraint
      * @param atMostMajor the major dimension constraint
      */
-    public AtMostSizer(int atMostMinor, int atMostMajor) {
+    public AtMostResizer(int atMostMinor, int atMostMajor) {
         this.atMostMinor = atMostMinor;
         this.atMostMajor = atMostMajor;
     }
