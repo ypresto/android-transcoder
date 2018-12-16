@@ -3,6 +3,8 @@ package net.ypresto.androidtranscoder.strategy.size;
 /**
  * A special {@link Size} that knows about which dimension is width
  * and which is height.
+ *
+ * See comments in {@link Resizer}.
  */
 public class ExactSize extends Size {
 

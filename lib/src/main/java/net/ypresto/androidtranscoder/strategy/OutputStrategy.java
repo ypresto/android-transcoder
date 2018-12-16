@@ -2,11 +2,15 @@ package net.ypresto.androidtranscoder.strategy;
 
 import android.media.MediaFormat;
 
+import net.ypresto.androidtranscoder.strategy.size.Resizer;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
  * Base class for video/audio format strategy.
+ * Video strategies should use a {@link Resizer} instance to compute the output
+ * video size.
  */
 public interface OutputStrategy {
 

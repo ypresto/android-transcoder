@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 
 /**
  * Base class for exceptions thrown by {@link OutputStrategy}.
+ * These are caught internally.
  */
 @SuppressWarnings("WeakerAccess")
 public class OutputStrategyException extends RuntimeException {
