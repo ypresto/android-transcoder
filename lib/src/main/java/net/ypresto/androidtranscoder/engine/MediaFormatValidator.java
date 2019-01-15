@@ -49,9 +49,9 @@ class MediaFormatValidator {
         byte profileIdc = AvcSpsUtils.getProfileIdc(spsBuffer);
         String profileName = AvcSpsUtils.getProfileName(profileIdc);
         if (profileIdc == AvcSpsUtils.PROFILE_IDC_BASELINE) {
-            Log.i(TAG, "Output H.264 profile: " + profileName);
+            LOG.i("Output H.264 profile: " + profileName);
         } else {
-            Log.w(TAG, "Output H.264 profile: " + profileName + ". This might not be supported.");
+            LOG.w("Output H.264 profile: " + profileName + ". This might not be supported.");
         }
     }
 
