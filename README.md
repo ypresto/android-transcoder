@@ -1,3 +1,9 @@
+# Note
+
+This project was forked recently from great [ypresto/android-transcoder](https://github.com/ypresto/android-transcoder). 
+Lots of changes were made, so the information in this README is mostly false at the moment.
+
+
 android-transcoder
 =================
 
