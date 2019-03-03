@@ -32,6 +32,7 @@ public class AvcCsdUtils {
     private static final byte AVC_SPS_NAL_3 = 71; // 0<<7 + 2<<5 + 7<<0
 
     /**
+     * @param format the input format
      * @return ByteBuffer contains SPS without NAL header.
      */
     public static ByteBuffer getSpsBuffer(MediaFormat format) {

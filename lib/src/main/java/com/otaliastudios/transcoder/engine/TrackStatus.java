@@ -8,6 +8,8 @@ public enum TrackStatus {
      * in MediaExtractor, and add this track to MediaMuxer.
      * Basically if it should be read and written or not
      * (no point in just reading without writing).
+     *
+     * @return true if transcoding
      */
     public boolean isTranscoding() {
         switch (this) {

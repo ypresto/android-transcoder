@@ -55,9 +55,12 @@ public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
     private boolean mFrameAvailable;
     private TextureRender mTextureRender;
     /**
-     * Creates an OutputSurface backed by a pbuffer with the specifed dimensions.  The new
+     * Creates an OutputSurface backed by a pbuffer with the specified dimensions.  The new
      * EGL context and surface will be made current.  Creates a Surface that can be passed
      * to MediaCodec.configure().
+     *
+     * @param width surface width
+     * @param height surface height
      */
     public OutputSurface(int width, int height) {
         if (width <= 0 || height <= 0) {
@@ -185,12 +188,17 @@ public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
     }
     /**
      * Returns the Surface that we draw onto.
+     *
+     * @return the output surface
      */
     public Surface getSurface() {
         return mSurface;
     }
+
     /**
      * Replaces the fragment shader.
+     *
+     * @param fragmentShader the new shader
      */
     public void changeFragmentShader(String fragmentShader) {
         mTextureRender.changeFragmentShader(fragmentShader);
@@ -223,9 +231,10 @@ public class OutputSurface implements SurfaceTexture.OnFrameAvailableListener {
         mTextureRender.checkGlError("before updateTexImage");
         mSurfaceTexture.updateTexImage();
     }
+
     /**
      * Wait up to given timeout until new image become available.
-     * @param timeoutMs
+     * @param timeoutMs timeout in ms
      * @return true if new image is available. false for no new image until timeout.
      */
     public boolean checkForNewImage(int timeoutMs) {

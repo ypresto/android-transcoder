@@ -38,8 +38,10 @@ public class InputSurface {
     private EGLContext mEGLContext = EGL14.EGL_NO_CONTEXT;
     private EGLSurface mEGLSurface = EGL14.EGL_NO_SURFACE;
     private Surface mSurface;
+
     /**
      * Creates an InputSurface from a Surface.
+     * @param surface the surface
      */
     public InputSurface(Surface surface) {
         if (surface == null) {
@@ -48,6 +50,7 @@ public class InputSurface {
         mSurface = surface;
         eglSetup();
     }
+
     /**
      * Prepares EGL.  We want a GLES 2.0 context and a surface that supports recording.
      */
@@ -132,38 +135,47 @@ public class InputSurface {
     }
     /**
      * Calls eglSwapBuffers.  Use this to "publish" the current frame.
+     * @return the output of eglSwapBuffers
      */
     public boolean swapBuffers() {
         return EGL14.eglSwapBuffers(mEGLDisplay, mEGLSurface);
     }
+
     /**
      * Returns the Surface that the MediaCodec receives buffers from.
+     * @return the surface
      */
     public Surface getSurface() {
         return mSurface;
     }
+
     /**
      * Queries the surface's width.
+     * @return surface width
      */
     public int getWidth() {
         int[] value = new int[1];
         EGL14.eglQuerySurface(mEGLDisplay, mEGLSurface, EGL14.EGL_WIDTH, value, 0);
         return value[0];
     }
+
     /**
      * Queries the surface's height.
+     * @return surface height
      */
     public int getHeight() {
         int[] value = new int[1];
         EGL14.eglQuerySurface(mEGLDisplay, mEGLSurface, EGL14.EGL_HEIGHT, value, 0);
         return value[0];
     }
+
     /**
      * Sends the presentation time stamp to EGL.  Time is expressed in nanoseconds.
      */
     public void setPresentationTime(long nsecs) {
         EGLExt.eglPresentationTimeANDROID(mEGLDisplay, mEGLSurface, nsecs);
     }
+
     /**
      * Checks for EGL errors.
      */

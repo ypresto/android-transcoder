@@ -18,7 +18,7 @@ public interface OutputStrategy {
      * Create the output format for this track (either audio or video).
      * Implementors can:
      * - throw a {@link OutputStrategyException} if the whole transcoding should be aborted
-     * - return {@param inputFormat} for remuxing this track as-is
+     * - return {@code inputFormat} for remuxing this track as-is
      * - returning {@code null} for removing this track from output
      *
      * @param inputFormat the input format

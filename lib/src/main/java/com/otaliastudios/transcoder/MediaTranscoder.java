@@ -102,6 +102,7 @@ public class MediaTranscoder {
      * Transcodes video file asynchronously.
      *
      * @param options The transcoder options.
+     * @return a Future that completes when transcoding is completed
      */
     @SuppressWarnings("WeakerAccess")
     public Future<Void> transcode(@NonNull final MediaTranscoderOptions options) {
@@ -173,6 +174,7 @@ public class MediaTranscoder {
 
         /**
          * Called when transcode failed.
+         * @param exception the failure exception
          */
         void onTranscodeFailed(@NonNull Throwable exception);
     }

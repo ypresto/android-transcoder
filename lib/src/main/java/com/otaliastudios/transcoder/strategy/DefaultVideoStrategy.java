@@ -45,6 +45,9 @@ public class DefaultVideoStrategy implements OutputStrategy {
     /**
      * Creates a new {@link Builder} with an {@link ExactResizer}
      * using given dimensions.
+     *
+     * @param firstSize the exact first size
+     * @param secondSize the exact second size
      * @return a strategy builder
      */
     public static Builder exact(int firstSize, int secondSize) {
@@ -54,6 +57,8 @@ public class DefaultVideoStrategy implements OutputStrategy {
     /**
      * Creates a new {@link Builder} with a {@link FractionResizer}
      * using given downscale fraction.
+     *
+     * @param fraction the downscale fraction
      * @return a strategy builder
      */
     public static Builder fraction(float fraction) {
@@ -63,6 +68,8 @@ public class DefaultVideoStrategy implements OutputStrategy {
     /**
      * Creates a new {@link Builder} with an {@link AtMostResizer}
      * using given constraint.
+     *
+     * @param atMostSize size constraint
      * @return a strategy builder
      */
     public static Builder atMost(int atMostSize) {
@@ -72,6 +79,9 @@ public class DefaultVideoStrategy implements OutputStrategy {
     /**
      * Creates a new {@link Builder} with an {@link AtMostResizer}
      * using given constraints.
+     *
+     * @param atMostMajor constraint for the major dimension
+     * @param atMostMinor constraint for the minor dimension
      * @return a strategy builder
      */
     public static Builder atMost(int atMostMinor, int atMostMajor) {

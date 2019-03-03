@@ -78,6 +78,7 @@ public class MediaTranscoderEngine {
 
     /**
      * NOTE: This method is thread safe.
+     * @return the current progress
      */
     public double getProgress() {
         return mProgress;
