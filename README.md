@@ -23,6 +23,10 @@ calling any method here.
 
 ## License
 
+This project is licensed under Apache 2.0. It consists of improvements over
+the [ypresto/android-transcoder](https://github.com/ypresto/android-transcoder)
+project which was licensed under Apache 2.0 as well:
+
 ```
 Copyright (C) 2014-2016 Yuya Tanaka
 
