@@ -24,7 +24,7 @@ If your app targets older Android, you should add below line to AndroidManifest.
 
 ```xml
 <!-- Only supports API >= 18 -->
-<uses-sdk tools:overrideLibrary="net.ypresto.androidtranscoder" />
+<uses-sdk tools:overrideLibrary="com.otaliastudios.transcoder" />
 ```
 
 Please ensure checking Build.VERSION by your self.
