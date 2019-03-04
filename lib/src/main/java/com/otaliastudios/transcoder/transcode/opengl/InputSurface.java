@@ -127,12 +127,7 @@ public class InputSurface {
             throw new RuntimeException("eglMakeCurrent failed");
         }
     }
-    public void makeUnCurrent() {
-        if (!EGL14.eglMakeCurrent(mEGLDisplay, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE,
-                EGL14.EGL_NO_CONTEXT)) {
-            throw new RuntimeException("eglMakeCurrent failed");
-        }
-    }
+
     /**
      * Calls eglSwapBuffers.  Use this to "publish" the current frame.
      * @return the output of eglSwapBuffers
@@ -170,7 +165,8 @@ public class InputSurface {
     }
 
     /**
-     * Sends the presentation time stamp to EGL.  Time is expressed in nanoseconds.
+     * Sends the presentation time stamp to EGL.
+     * @param nsecs time in nanoseconds
      */
     public void setPresentationTime(long nsecs) {
         EGLExt.eglPresentationTimeANDROID(mEGLDisplay, mEGLSurface, nsecs);

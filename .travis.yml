@@ -18,6 +18,9 @@ android:
   - android-28
   - doc-28
 
+script:
+- ./gradlew build
+
 cache:
   directories:
   - $HOME/.gradle
