@@ -5,7 +5,7 @@ Lots of changes were made, so the documentation must be rewritten. You can, howe
 demo app which provides a working example of the new API.
 
 ```groovy
-implementation 'com.otaliastudios:transcoder:0.1.0'
+implementation 'com.otaliastudios:transcoder:0.4.0'
 ```
 
 ## Setup
