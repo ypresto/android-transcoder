@@ -18,15 +18,8 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaFormat;
 
 import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
-import net.ypresto.androidtranscoder.utils.AvcCsdUtils;
-import net.ypresto.androidtranscoder.utils.AvcSpsUtils;
-
-import java.nio.ByteBuffer;
 
 class MediaFormatValidator {
-    // Refer: http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Profiles
-    private static final byte PROFILE_IDC_BASELINE = 66;
-    private static final byte PROFILE_IDC_HI = 100;
 
     public static void validateVideoOutputFormat(MediaFormat format) {
         String mime = format.getString(MediaFormat.KEY_MIME);
@@ -34,12 +27,6 @@ class MediaFormatValidator {
         // Refer: http://en.wikipedia.org/wiki/MPEG-4_Part_14#Data_streams
         if (!MediaFormatExtraConstants.MIMETYPE_VIDEO_AVC.equals(mime)) {
             throw new InvalidOutputFormatException("Video codecs other than AVC is not supported, actual mime type: " + mime);
-        }
-        ByteBuffer spsBuffer = AvcCsdUtils.getSpsBuffer(format);
-        byte profileIdc = AvcSpsUtils.getProfileIdc(spsBuffer);
-        boolean availableProfile = (profileIdc == PROFILE_IDC_BASELINE || profileIdc == PROFILE_IDC_HI);
-        if (!availableProfile) {
-            throw new InvalidOutputFormatException("Non-baseline AVC video profile is not supported by Android OS, actual profile_idc: " + profileIdc);
         }
     }
 
