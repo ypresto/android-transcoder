@@ -50,6 +50,11 @@ public class VideoTrackTranscoder implements TrackTranscoder {
     private boolean mEncoderStarted;
     private long mWrittenPresentationTimeUs;
 
+    private double mFrameRateReciprocalSum;
+    private double mInFrameRateReciprocal;
+    private double mOutFrameRateReciprocal;
+
+
     public VideoTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                 MediaFormat outputFormat, QueuedMuxer muxer) {
         mExtractor = extractor;
@@ -90,6 +95,12 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mDecoder.start();
         mDecoderStarted = true;
         mDecoderInputBuffers = mDecoder.getInputBuffers();
+
+        MediaFormat trackFormat = mExtractor.getTrackFormat(mTrackIndex);
+        int inFrameRate = trackFormat.getInteger(MediaFormat.KEY_FRAME_RATE);
+        int outFrameRate = mOutputFormat.getInteger(MediaFormat.KEY_FRAME_RATE);
+        mInFrameRateReciprocal = 1.0d / inFrameRate;
+        mOutFrameRateReciprocal = 1.0d / outFrameRate;
     }
 
     @Override
@@ -185,6 +196,14 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // NOTE: doRender will block if buffer (of encoder) is full.
         // Refer: http://bigflake.com/mediacodec/CameraToMpegTest.java.txt
         mDecoder.releaseOutputBuffer(result, doRender);
+
+        // NOTE: output frame rate is ignored if source video frame rate is too large(such as 60fps)
+        // So drop some frame
+        if (checkDropFrame()) {
+            if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_KEY_FRAME) == 0) {
+                return DRAIN_STATE_CONSUMED;
+            }
+        }
         if (doRender) {
             mDecoderOutputSurfaceWrapper.awaitNewImage();
             mDecoderOutputSurfaceWrapper.drawImage();
@@ -213,7 +232,6 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         if (mActualOutputFormat == null) {
             throw new RuntimeException("Could not determine actual output format.");
         }
-
         if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
             mIsEncoderEOS = true;
             mBufferInfo.set(0, 0, 0, mBufferInfo.flags);
@@ -227,5 +245,19 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
         mEncoder.releaseOutputBuffer(result, false);
         return DRAIN_STATE_CONSUMED;
+    }
+
+    //Refer:https://stackoverflow.com/questions/4223766/dropping-video-frames
+    private boolean checkDropFrame() {
+        boolean firstFrame = Double.valueOf(0d).equals(mFrameRateReciprocalSum);
+        mFrameRateReciprocalSum += mInFrameRateReciprocal;
+        if (firstFrame) {
+            return false;
+        }
+        if (mFrameRateReciprocalSum > mOutFrameRateReciprocal) {
+            mFrameRateReciprocalSum -= mOutFrameRateReciprocal;
+            return false;
+        }
+        return true;
     }
 }
