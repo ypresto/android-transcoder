@@ -200,9 +200,7 @@ public class VideoTrackTranscoder implements TrackTranscoder {
         // NOTE: output frame rate is ignored if source video frame rate is too large(such as 60fps)
         // So drop some frame
         if (checkDropFrame()) {
-            if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_KEY_FRAME) == 0) {
-                return DRAIN_STATE_CONSUMED;
-            }
+            return DRAIN_STATE_CONSUMED;
         }
         if (doRender) {
             mDecoderOutputSurfaceWrapper.awaitNewImage();
