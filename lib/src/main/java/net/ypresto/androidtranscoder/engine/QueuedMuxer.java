@@ -30,6 +30,7 @@ import java.util.List;
  */
 public class QueuedMuxer {
     private static final String TAG = "QueuedMuxer";
+    private static final int EXCLUDE_TRACK_INDEX = -1;
     private static final int BUFFER_SIZE = 64 * 1024; // I have no idea whether this value is appropriate or not...
     private final MediaMuxer mMuxer;
     private final Listener mListener;
@@ -54,6 +55,11 @@ public class QueuedMuxer {
                 break;
             case AUDIO:
                 mAudioFormat = format;
+
+                if(format == null) {
+                    // Tell the muxer we do not require audio.
+                    mAudioTrackIndex = EXCLUDE_TRACK_INDEX;
+                }
                 break;
             default:
                 throw new AssertionError();
@@ -62,13 +68,17 @@ public class QueuedMuxer {
     }
 
     private void onSetOutputFormat() {
-        if (mVideoFormat == null || mAudioFormat == null) return;
+        if (mVideoFormat == null || (mAudioFormat == null && mAudioTrackIndex != EXCLUDE_TRACK_INDEX)) return;
         mListener.onDetermineOutputFormat();
 
         mVideoTrackIndex = mMuxer.addTrack(mVideoFormat);
         Log.v(TAG, "Added track #" + mVideoTrackIndex + " with " + mVideoFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
-        mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
-        Log.v(TAG, "Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
+
+        if(mAudioFormat != null) {
+            mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
+            Log.v(TAG, "Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
+        }
+
         mMuxer.start();
         mStarted = true;
 
