@@ -16,6 +16,9 @@
 package net.ypresto.androidtranscoder.format;
 
 public class MediaFormatStrategyPresets {
+    public static final int AUDIO_BITRATE_AS_IS = -1;
+    public static final int AUDIO_CHANNELS_AS_IS = -1;
+
     /**
      * @deprecated Use {@link #createExportPreset960x540Strategy()}.
      */
@@ -45,7 +48,7 @@ public class MediaFormatStrategyPresets {
     /**
      * Preset based on Nexus 4 camera recording with 720p quality.
      * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS (if codec is available).
-     * <p/>
+     * <br>
      * Note: audio transcoding is experimental feature.
      *
      * @param bitrate       Preferred bitrate for video encoding.

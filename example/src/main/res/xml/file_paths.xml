@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <external-path
+        name="output_videos"
+        path="Android/data/net.ypresto.androidtranscoder.example/files/outputs" />
+</paths>

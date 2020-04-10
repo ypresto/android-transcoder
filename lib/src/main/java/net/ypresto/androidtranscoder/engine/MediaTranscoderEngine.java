@@ -19,9 +19,12 @@ import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaMuxer;
+import android.os.Build;
 import android.util.Log;
 
+import net.ypresto.androidtranscoder.BuildConfig;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
+import net.ypresto.androidtranscoder.utils.ISO6709LocationParser;
 import net.ypresto.androidtranscoder.utils.MediaExtractorUtils;
 
 import java.io.FileDescriptor;
@@ -137,9 +140,17 @@ public class MediaTranscoderEngine {
             // skip
         }
 
-        // TODO: parse ISO 6709
-        // String locationString = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION);
-        // mMuxer.setLocation(Integer.getInteger(rotationString, 0));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            String locationString = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_LOCATION);
+            if (locationString != null) {
+                float[] location = new ISO6709LocationParser().parse(locationString);
+                if (location != null) {
+                    mMuxer.setLocation(location[0], location[1]);
+                } else {
+                    Log.d(TAG, "Failed to parse the location metadata: " + locationString);
+                }
+            }
+        }
 
         try {
             mDurationUs = Long.parseLong(mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)) * 1000;
@@ -189,7 +200,7 @@ public class MediaTranscoderEngine {
         mAudioTrackTranscoder.setup();
     }
 
-    private void runPipelines() {
+    private void runPipelines() throws InterruptedException {
         long loopCount = 0;
         if (mDurationUs <= 0) {
             double progress = PROGRESS_UNKNOWN;
@@ -208,11 +219,7 @@ public class MediaTranscoderEngine {
                 if (mProgressCallback != null) mProgressCallback.onProgress(progress);
             }
             if (!stepped) {
-                try {
-                    Thread.sleep(SLEEP_TO_WAIT_TRACK_TRANSCODERS);
-                } catch (InterruptedException e) {
-                    // nothing to do
-                }
+                Thread.sleep(SLEEP_TO_WAIT_TRACK_TRANSCODERS);
             }
         }
     }

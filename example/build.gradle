@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 24
-    buildToolsVersion "24.0.1"
+    buildToolsVersion '25.0.0'
 
     defaultConfig {
         applicationId "net.ypresto.androidtranscoder.example"
@@ -21,4 +21,5 @@ android {
 
 dependencies {
     compile project(':lib')
+    compile 'com.android.support:support-core-utils:24.2.0'
 }
