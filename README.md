@@ -81,10 +81,11 @@ Use [qtfaststart-java](https://github.com/ypresto/qtfaststart-java) to place moo
 
 ## More information about internals
 
-There is a blog post about this library written in Japanese.
-http://qiita.com/yuya_presto/items/d48e29c89109b746d000
+Seungwon Lee created awesome slide which describes this (and derived) library.
+https://speakerdeck.com/line_devday2019/looking-for-a-silver-bullet-to-edit-videos-on-android
 
-While it is Japanese, diagrams would be useful for understanding internals of this library.
+Also there is a blog post about this library written in Japanese. While it is Japanese, diagrams would be useful for understanding internals of this library.
+http://qiita.com/yuya_presto/items/d48e29c89109b746d000
 
 ## References for Android Low-Level Media APIs
 
