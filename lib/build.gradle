@@ -3,7 +3,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.novoda:bintray-release:0.2.4'
+        classpath 'com.novoda:bintray-release:0.8.1'
     }
 }
 
@@ -11,12 +11,12 @@ apply plugin: 'com.android.library'
 apply plugin: 'bintray-release'
 
 android {
-    compileSdkVersion 24
-    buildToolsVersion '25.0.2'
+    compileSdkVersion rootProject.compileSdkVersion
+    buildToolsVersion rootProject.buildToolsVersion
 
     defaultConfig {
-        minSdkVersion 18
-        targetSdkVersion 24
+        minSdkVersion rootProject.minSdkVersion
+        targetSdkVersion rootProject.targetSdkVersion
     }
 
     buildTypes {
@@ -30,9 +30,11 @@ android {
 }
 
 publish {
+    userOrg = 'net.ypresto'
     groupId = 'net.ypresto.androidtranscoder'
     artifactId = 'android-transcoder'
-    version = '0.3.0'
+    publishVersion = '0.3.0'
+    desc = 'Hardware accelerated transcoder for Android, written in pure Java.'
     licences = ['Apache-2.0']
     website = 'https://github.com/ypresto/android-transcoder'
     autoPublish = false
